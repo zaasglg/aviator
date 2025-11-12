@@ -473,10 +473,23 @@
                 const $field = $(this);
                 const $buttons = $('.fast_bet', $field);
                 
+                console.log('🔘 Updating', $buttons.length, 'quick bet buttons');
+                
+                // Update buttons with new values
+                // НЕ переназначаем обработчики - они уже установлены в game.js
                 $buttons.each(function(index) {
                     if (index < quickBets.length) {
                         const value = quickBets[index];
-                        $(this).text(value.toFixed(value < 1 ? 2 : 0));
+                        const $btn = $(this);
+                        
+                        // Update button text
+                        const displayValue = value < 1 ? value.toFixed(2) : value.toFixed(0);
+                        $btn.text(displayValue);
+                        
+                        // Store value in data attribute for game.js handler
+                        $btn.attr('data-bet-value', value);
+                        
+                        console.log('🔘 Button', index, 'set to:', value, 'display:', displayValue);
                     }
                 });
                 

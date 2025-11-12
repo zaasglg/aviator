@@ -419,8 +419,13 @@ class Game {
         $('#actions_wrapper .actions_field .fast_bet').off().on('click', function(){
             var $self=$(this); 
             var $wrap=$self.parent().parent().parent(); 
-            var $val = parseFloat( $self.text() ); 
+            
+            // Используем data-bet-value если есть, иначе текст кнопки
+            var $val = $self.attr('data-bet-value') ? parseFloat($self.attr('data-bet-value')) : parseFloat($self.text()); 
             var $cur = parseFloat( $('input:text', $wrap).val() ); 
+            
+            console.log('Fast bet clicked:', $val, 'Current:', $cur, 'Active:', $self.attr('active'));
+            
             //if( $cur < $val || $cur % $val ){ $val = $val; } 
             //else { $val = $cur + $val; } 
             if( $self.attr('active') ){ $val = $cur + $val; } 
@@ -429,6 +434,8 @@ class Game {
             $val = $val < 0.5 ? 0.5 : ( $val > $game.max_bet ? $game.max_bet : $val ); 
             $('input:text', $wrap).val( $val );
             $('[data-rel="current_bet"]', $wrap).val( $val ).html( $val );
+            
+            console.log('Bet updated to:', $val);
         }); 
         // включение автовывода
         $('#actions_wrapper .actions_field .auto_out_switcher input').off().on('change', function(){
