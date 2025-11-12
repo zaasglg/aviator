@@ -34,12 +34,11 @@
         init() {
             const urlParams = new URLSearchParams(window.location.search);
             
-            // Get access token from URL
-            this.accessToken = urlParams.get('access_token');
+            // Get access token from URL or from window
+            this.accessToken = urlParams.get('access_token') || window.ACCESS_TOKEN;
             
-            // Determine if real mode
-            const mode = urlParams.get('mode');
-            this.isRealMode = mode === 'real' && this.accessToken;
+            // Если есть токен - это реальный режим
+            this.isRealMode = !!this.accessToken;
             
             // Store token globally
             if (this.accessToken) {
@@ -48,12 +47,35 @@
             
             console.log('API initialized:', {
                 hasToken: !!this.accessToken,
-                isRealMode: this.isRealMode
+                isRealMode: this.isRealMode,
+                token: this.accessToken ? this.accessToken.substring(0, 20) + '...' : 'none'
             });
             
             // Fetch initial user info if in real mode
             if (this.isRealMode) {
-                this.fetchUserInfo();
+                console.log('🔄 Real mode detected - will fetch user info');
+                
+                // Wait for DOM to be ready
+                const fetchUserData = () => {
+                    console.log('🔄 Fetching user info from API...');
+                    this.fetchUserInfo().then(userInfo => {
+                        if (userInfo) {
+                            console.log('✅ User info loaded successfully:', userInfo);
+                        } else {
+                            console.error('❌ Failed to load user info');
+                        }
+                    });
+                };
+                
+                // If document is already loaded, fetch immediately
+                if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                    fetchUserData();
+                } else {
+                    // Otherwise wait for DOM to load
+                    document.addEventListener('DOMContentLoaded', fetchUserData);
+                }
+            } else {
+                console.log('ℹ️ Demo mode - API disabled');
             }
         }
 
@@ -103,15 +125,23 @@
                 if (data && data.deposit !== undefined) {
                     const apiBalance = parseFloat(data.deposit);
                     
+                    console.log('💰 API Balance received:', apiBalance);
+                    console.log('💰 Current $user.balance:', window.$user ? window.$user.balance : 'undefined');
+                    
                     // Update global user balance
                     if (window.$user) {
                         window.$user.balance = apiBalance;
+                        console.log('💰 Updated $user.balance to:', window.$user.balance);
+                    } else {
+                        console.error('❌ window.$user is not defined!');
                     }
                     
                     // Update balance display
                     this.updateBalanceDisplay(apiBalance);
                     
-                    console.log('Balance updated from API:', apiBalance);
+                    console.log('✅ Balance updated from API:', apiBalance);
+                } else {
+                    console.warn('⚠️ No deposit field in API response:', data);
                 }
 
                 // Update currency if available
@@ -261,14 +291,29 @@
         updateBalanceDisplay(balance) {
             const formattedBalance = parseFloat(balance).toFixed(2);
             
+            console.log('🎨 Updating balance display to:', formattedBalance);
+            
+            // Check if jQuery is available
+            if (typeof $ === 'undefined') {
+                console.error('❌ jQuery is not loaded yet!');
+                // Retry after a short delay
+                setTimeout(() => this.updateBalanceDisplay(balance), 100);
+                return;
+            }
+            
             // Update all balance elements
-            $('[data-rel="balance"]').each(function() {
+            const balanceElements = $('[data-rel="balance"]');
+            console.log('🎨 Found', balanceElements.length, 'balance elements');
+            
+            balanceElements.each(function() {
                 $(this).val(formattedBalance).html(formattedBalance).text(formattedBalance);
             });
             
-            $('#main_balance').html(formattedBalance);
+            const mainBalance = $('#main_balance');
+            console.log('🎨 Main balance element:', mainBalance.length > 0 ? 'found' : 'not found');
+            mainBalance.html(formattedBalance);
             
-            console.log('Balance display updated:', formattedBalance);
+            console.log('✅ Balance display updated to:', formattedBalance);
         }
 
         /**
