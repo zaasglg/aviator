@@ -261,7 +261,8 @@ class Game {
         this.current_bets = []; 
         this.max_bet = 500; 
         this.generic_chanse = 99.2;
-        this.factor = 35; // Увеличил с 11 до 35 для получения 1000-1400 игроков 
+        this.factor = 35; // Увеличил с 11 до 35 для получения 1000-1400 игроков
+        this.history = []; // История коэффициентов
         this.timer = new Date().getTime(); 
         this.timers = SETTINGS.timers; 
         this.status = "loading"; 
@@ -1046,25 +1047,34 @@ class Game {
         return users;
     }
     get_history( $data ){ 
-        $.ajax({
-            url: "index.php?route=api/games/history", 
-            type:"json", 
-            method: "post", 
-            data: $data, 
-            error: function($e){ console.error($e); },
-            success: function($r){
-                var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
-                if( $obj && $obj.length ){ 
-                    var $wrap = $('#history_wrapper .wrapper .inner'); 
-                    $wrap.html(``);
-                    for( var $h of $obj ){
-                        var $amount = +$h.amount; 
-                        var $tmps = `<span class="${ $h.amount >= 5 ? 'high' : ( $h.amount >= 2 ? 'mid' : 'low' ) }">${ $h.amount }</span>`; 
-                        $wrap.append($tmps);
-                    }
-                }
+        // Генерируем начальную историю если её нет
+        if(this.history.length === 0) {
+            for(var i = 0; i < 20; i++) {
+                // Генерируем случайные коэффициенты от 1.00 до 10.00
+                var cf = (Math.random() * 9 + 1).toFixed(2);
+                this.history.push(parseFloat(cf));
             }
-        });
+        }
+        
+        console.log("Updating history display, history length:", this.history.length);
+        console.log("History:", this.history);
+        
+        // Отображаем историю
+        var $wrap = $('#history_wrapper .wrapper .inner'); 
+        if($wrap.length === 0) {
+            console.error("History wrapper not found!");
+            return;
+        }
+        
+        $wrap.html('');
+        // Отображаем в прямом порядке - старые слева, новые справа
+        for(var i = 0; i < this.history.length; i++) {
+            var amount = this.history[i];
+            var $tmps = `<span class="${ amount >= 5 ? 'high' : ( amount >= 2 ? 'mid' : 'low' ) }">${ amount }x</span>`; 
+            $wrap.append($tmps);
+        }
+        
+        console.log("History display updated, elements:", $wrap.children().length);
     } 
     get_bets( $data ){ 
         // Database removed - no bet history to load
@@ -1222,7 +1232,8 @@ class Game {
     }
     flying_to_finish( $data ){ 
         console.log("=== КОНЕЦ ИГРЫ ===");
-        console.log("Data to finish: ", $data); 
+        console.log("Data to finish: ", $data);
+        console.log("Current win_cf:", this.win_cf); 
         
         // ОБРАБАТЫВАЕМ ПРОИГРЫШИ
         // Проверяем, есть ли активные ставки, которые не были выведены
@@ -1266,6 +1277,16 @@ class Game {
         this.cur_cf = this.win_cf;
         $plane.status = "finish"; // Меняем статус вместо trace
         $plane.pos = 5; 
+        
+        // Добавляем коэффициент в историю
+        console.log("Adding coefficient to history:", this.win_cf);
+        this.history.push(parseFloat(this.win_cf));
+        if(this.history.length > 20) {
+            this.history.shift(); // Удаляем самый старый если больше 20
+        }
+        console.log("Calling get_history() to update display");
+        this.get_history(); // Обновляем отображение истории
+        
         this.clear_level({ cf: this.win_cf }); 
         $('#loading_level .progresser').css('width','100%').attr('data-freq', '100');
         $('#process_level .current').attr('data-amount',1);
@@ -1300,7 +1321,6 @@ class Game {
         
         setTimeout( $game.balance, 1000 ); 
         if( SETTINGS.volume.active ){ SOUNDS.sounds.play('away'); } 
-        //this.get_history({}); 
         this.get_bets({ user:$user.uid, sort:'id', dir:'desc' });
         this.balance(); 
     } 
