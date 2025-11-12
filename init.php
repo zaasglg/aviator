@@ -133,9 +133,43 @@
 	error_log("_REQUEST: " . json_encode($_REQUEST));
 	error_log("_GET: " . json_encode($_GET));
 	
+	// Проверяем параметры URL для режима игры
+	$is_demo_mode = isset($_GET['demo']) && $_GET['demo'] === 'true';
+	$access_token = isset($_GET['access_token']) ? $_GET['access_token'] : null;
+	$country = isset($_GET['country']) ? $_GET['country'] : 'Venezuela';
+	
 	// Проверяем разные варианты авторизации
     $auth_user_id = false;
-    if (isset($_GET['user_id'])) {
+    
+    // Режим 1: Demo mode
+    if ($is_demo_mode) {
+        error_log("Demo mode activated with country: " . $country);
+        $_SESSION['demo_mode'] = true;
+        $_SESSION['demo_country'] = $country;
+        $auth_user_id = false; // Нет авторизации в демо режиме
+    }
+    // Режим 2: Real mode с access_token
+    elseif ($access_token) {
+        error_log("Real mode with access_token");
+        // Декодируем JWT токен
+        try {
+            // Простое декодирование JWT (без проверки подписи для примера)
+            $token_parts = explode('.', $access_token);
+            if (count($token_parts) === 3) {
+                $payload = json_decode(base64_decode($token_parts[1]), true);
+                if (isset($payload['user_id'])) {
+                    $auth_user_id = $payload['user_id'];
+                    $_SESSION['user_id'] = $auth_user_id;
+                    $_SESSION['access_token'] = $access_token;
+                    error_log("Decoded user_id from token: " . $auth_user_id);
+                }
+            }
+        } catch (Exception $e) {
+            error_log("Error decoding access_token: " . $e->getMessage());
+        }
+    }
+    // Режим 3: Старый способ с user_id
+    elseif (isset($_GET['user_id'])) {
         $auth_user_id = $_GET['user_id'];
         $_SESSION['user_id'] = $auth_user_id;
         error_log("Found user_id in GET: " . $auth_user_id);
