@@ -1361,16 +1361,41 @@ console.log('Connecting to WebSocket server...');
 //     reconnectionAttempts: 10
 // });
 
-var socket = io.connect('wss://aviator.valor-games.co/ws/', {
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionDelay: 1000,
-    reconnectionAttempts: 10
+// var socket = io.connect('wss://aviator.valor-games.co/ws/', {
+//     transports: ['websocket', 'polling'],
+//     reconnection: true,
+//     reconnectionDelay: 1000,
+//     reconnectionAttempts: 10
+// });
+
+
+// socket.on('connect', function() {
+//     console.log('✓ Connected to WebSocket server!');
+// });
+
+const io = require('socket.io')(server, {
+    cors: {
+        origin: '*',
+        methods: ['GET','POST','PATCH','PUT','DELETE','OPTIONS']
+    }
 });
 
+// Создаем namespace /ws
+const wsNamespace = io.of("/ws");
 
-socket.on('connect', function() {
-    console.log('✓ Connected to WebSocket server!');
+wsNamespace.on('connection', (socket) => {
+    console.log('✓ New client connected to /ws namespace', socket.id);
+
+    // Пример отправки сообщений клиенту
+    socket.emit('message', JSON.stringify({ uid:"all", msg:'connection complete' }));
+
+    socket.on('message', (data) => {
+        console.log('Received from client:', data);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('✗ Client disconnected:', socket.id);
+    });
 });
 
 socket.on('connect_error', function(error) {
