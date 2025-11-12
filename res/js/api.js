@@ -144,9 +144,16 @@
                     console.warn('⚠️ No deposit field in API response:', data);
                 }
 
-                // Update currency if available
-                if (data.country_info && data.country_info.currency) {
-                    this.updateCurrency(data.country_info.currency);
+                // Update currency and country settings
+                if (data.country_info) {
+                    if (data.country_info.currency) {
+                        this.updateCurrency(data.country_info.currency);
+                    }
+                    
+                    // Update country-specific settings (quick_bets, min/max bet, etc.)
+                    if (data.country) {
+                        this.updateCountrySettings(data.country, data.country_info.currency);
+                    }
                 }
 
                 // Store user ID
@@ -345,6 +352,162 @@
                     $(this).attr('xlink:href', './res/img/currency.svg#' + currency);
                 }
             });
+        }
+
+        /**
+         * Update country-specific settings (quick_bets, min/max bet, etc.)
+         */
+        updateCountrySettings(country, currency) {
+            console.log('🌍 Updating country settings for:', country, currency);
+            
+            // Country configurations matching demo_config.php
+            const countryConfigs = {
+                'Colombia': {
+                    currency: 'COP',
+                    quick_bets: [2500, 5000, 10000, 35000],
+                    min_bet: 100,
+                    max_bet: 70000,
+                    default_bet: 2500
+                },
+                'Paraguay': {
+                    currency: 'PYG',
+                    quick_bets: [50000, 100000, 200000, 700000],
+                    min_bet: 1000,
+                    max_bet: 1500000,
+                    default_bet: 50000
+                },
+                'Ecuador': {
+                    currency: 'USD',
+                    quick_bets: [0.5, 1, 2, 7],
+                    min_bet: 0.5,
+                    max_bet: 150,
+                    default_bet: 0.5
+                },
+                'Brazil': {
+                    currency: 'BRL',
+                    quick_bets: [20, 50, 100, 350],
+                    min_bet: 10,
+                    max_bet: 1000,
+                    default_bet: 20
+                },
+                'Argentina': {
+                    currency: 'ARS',
+                    quick_bets: [150, 300, 600, 2100],
+                    min_bet: 50,
+                    max_bet: 5000,
+                    default_bet: 150
+                },
+                'Mexico': {
+                    currency: 'MXN',
+                    quick_bets: [100, 200, 400, 1400],
+                    min_bet: 50,
+                    max_bet: 3000,
+                    default_bet: 100
+                },
+                'Peru': {
+                    currency: 'PEN',
+                    quick_bets: [20, 50, 100, 350],
+                    min_bet: 10,
+                    max_bet: 1000,
+                    default_bet: 20
+                },
+                'Chile': {
+                    currency: 'CLP',
+                    quick_bets: [5000, 10000, 20000, 70000],
+                    min_bet: 1000,
+                    max_bet: 200000,
+                    default_bet: 5000
+                },
+                'Uruguay': {
+                    currency: 'UYU',
+                    quick_bets: [200, 400, 800, 2800],
+                    min_bet: 100,
+                    max_bet: 10000,
+                    default_bet: 200
+                },
+                'Bolivia': {
+                    currency: 'BOB',
+                    quick_bets: [35, 70, 140, 490],
+                    min_bet: 10,
+                    max_bet: 2000,
+                    default_bet: 35
+                },
+                'Venezuela': {
+                    currency: 'VES',
+                    quick_bets: [50000, 100000, 200000, 700000],
+                    min_bet: 10000,
+                    max_bet: 2000000,
+                    default_bet: 50000
+                },
+                'Guyana': {
+                    currency: 'GYD',
+                    quick_bets: [1000, 2000, 4000, 14000],
+                    min_bet: 500,
+                    max_bet: 50000,
+                    default_bet: 1000
+                },
+                'Suriname': {
+                    currency: 'SRD',
+                    quick_bets: [2000, 4000, 8000, 28000],
+                    min_bet: 1000,
+                    max_bet: 100000,
+                    default_bet: 2000
+                },
+                'default': {
+                    currency: 'USD',
+                    quick_bets: [0.5, 1, 2, 7],
+                    min_bet: 0.5,
+                    max_bet: 150,
+                    default_bet: 0.5
+                }
+            };
+            
+            // Get config for country or use default
+            const config = countryConfigs[country] || countryConfigs['default'];
+            
+            console.log('🌍 Country config:', config);
+            
+            // Update quick bet buttons
+            const quickBets = config.quick_bets;
+            $('.actions_field').each(function() {
+                const $field = $(this);
+                const $buttons = $('.fast_bet', $field);
+                
+                $buttons.each(function(index) {
+                    if (index < quickBets.length) {
+                        const value = quickBets[index];
+                        $(this).text(value.toFixed(value < 1 ? 2 : 0));
+                    }
+                });
+                
+                // Update default bet in input
+                const $input = $('.ranger input[type="text"]', $field);
+                $input.val(config.default_bet);
+                
+                // Update current bet display
+                $('[data-rel="current_bet"]', $field).html(config.default_bet);
+            });
+            
+            // Update global user settings
+            if (window.$user) {
+                window.$user.quick_bets = quickBets;
+                window.$user.min_bet = config.min_bet;
+                window.$user.max_bet = config.max_bet;
+                window.$user.default_bet = config.default_bet;
+                window.$user.country = country;
+                
+                console.log('✅ User settings updated:', window.$user);
+            }
+            
+            // Update game config
+            if (window.$game_config) {
+                window.$game_config.quick_bets = quickBets;
+                window.$game_config.min_bet = config.min_bet;
+                window.$game_config.max_bet = config.max_bet;
+                window.$game_config.default_bet = config.default_bet;
+            }
+            
+            console.log('✅ Country settings updated for', country);
         }
 
         /**
