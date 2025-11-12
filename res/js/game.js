@@ -681,53 +681,16 @@ class Game {
     
     // DEPRECATED
     game_create( $data ){
-        $.ajax({
-            url: "index.php?route=api/games/search", 
-            type:"json", 
-            method: "post", 
-            data: $data, 
-            error: function($e){ console.error($e); },
-            success: function($r){
-                var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
-                if( $obj.id ){ 
-                    $game.win_cf = +$obj.amount; 
-                    var $delta = ( 15 - +$obj.delta ) * 1000; ; 
-                    $delta = $delta <= 0 ? 100 : $delta;
-                    $game.timers.loading = $delta; 
-                    $game.new_delta = 0; // +$obj.delta < 0 ? Math.abs(+$obj.delta) : 0; 
-                }
-            }
-        });
+        // Database removed - game state managed by WebSocket
+        console.log("game_create called (deprecated, using WebSocket)");
     } 
     // DEPRECATED 
     game_start( $data ){
-        $.ajax({
-            url: "index.php?route=api/games/edit", 
-            type:"json", 
-            method: "post", 
-            data:{ status:2 }, 
-            error: function($e){ console.error($e); },
-            success: function($r){
-                var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
-                if( $obj.success ){ 
-
-                }
-            }
-        });
+        console.log("game_start called (deprecated, using WebSocket)");
     } 
     // DEPRECATED
     game_close( $data ){
-        $.ajax({
-            url: "index.php?route=api/games/close", 
-            type:"json", 
-            method: "post", 
-            data:{ status:7 }, 
-            error: function($e){ console.error($e); },
-            success: function($r){
-                var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
-                if( $obj.success ){ }
-            }
-        });
+        console.log("game_close called (deprecated, using WebSocket)");
     }
     
     clear_level( $data ){
