@@ -177,14 +177,23 @@
                                 </div>
                                 <?php 
                                 $quick_bets = isset($_SESSION['user']['quick_bets']) ? $_SESSION['user']['quick_bets'] : [2.00, 5.00, 10.00, 50.00];
+                                
+                                // Функция для форматирования ставок
+                                function format_bet($value) {
+                                    if ($value < 1) {
+                                        return number_format($value, 2, '.', '');
+                                    } else {
+                                        return number_format($value, 0, '.', '');
+                                    }
+                                }
                                 ?>
                                 <div class="line">
-                                    <button class="fast_bet"><?= number_format($quick_bets[0], 2, '.', ''); ?></button>
-                                    <button class="fast_bet"><?= number_format($quick_bets[1], 2, '.', ''); ?></button>
+                                    <button class="fast_bet" data-bet-value="<?= $quick_bets[0]; ?>"><?= format_bet($quick_bets[0]); ?></button>
+                                    <button class="fast_bet" data-bet-value="<?= $quick_bets[1]; ?>"><?= format_bet($quick_bets[1]); ?></button>
                                 </div>
                                 <div class="line">
-                                    <button class="fast_bet"><?= number_format($quick_bets[2], 2, '.', ''); ?></button>
-                                    <button class="fast_bet"><?= number_format($quick_bets[3], 2, '.', ''); ?></button>
+                                    <button class="fast_bet" data-bet-value="<?= $quick_bets[2]; ?>"><?= format_bet($quick_bets[2]); ?></button>
+                                    <button class="fast_bet" data-bet-value="<?= $quick_bets[3]; ?>"><?= format_bet($quick_bets[3]); ?></button>
                                 </div>
                             </div>
                             <div class="right">
@@ -230,12 +239,12 @@
                                     <button data-dir="plus"><img src="res/img/plus-grey.svg" alt=""></button>
                                 </div>
                                 <div class="line">
-                                    <button class="fast_bet"><?= number_format($quick_bets[0], 2, '.', ''); ?></button>
-                                    <button class="fast_bet"><?= number_format($quick_bets[1], 2, '.', ''); ?></button>
+                                    <button class="fast_bet" data-bet-value="<?= $quick_bets[0]; ?>"><?= format_bet($quick_bets[0]); ?></button>
+                                    <button class="fast_bet" data-bet-value="<?= $quick_bets[1]; ?>"><?= format_bet($quick_bets[1]); ?></button>
                                 </div>
                                 <div class="line">
-                                    <button class="fast_bet"><?= number_format($quick_bets[2], 2, '.', ''); ?></button>
-                                    <button class="fast_bet"><?= number_format($quick_bets[3], 2, '.', ''); ?></button>
+                                    <button class="fast_bet" data-bet-value="<?= $quick_bets[2]; ?>"><?= format_bet($quick_bets[2]); ?></button>
+                                    <button class="fast_bet" data-bet-value="<?= $quick_bets[3]; ?>"><?= format_bet($quick_bets[3]); ?></button>
                                 </div>
                             </div>
                             <div class="right">

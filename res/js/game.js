@@ -1605,6 +1605,54 @@ $(document).ready(function() {
     
     console.log("Plane created at:", $plane.x, $plane.y);
     
+    // Apply game config settings (for demo mode)
+    if (window.$game_config && window.$game) {
+        console.log("📋 Applying game config:", window.$game_config);
+        
+        // Update max_bet from config
+        if ($game_config.max_bet) {
+            $game.max_bet = $game_config.max_bet;
+            console.log("✅ Game max_bet set to:", $game.max_bet);
+        }
+        
+        // Update quick bet buttons with config values
+        if ($game_config.quick_bets && $game_config.quick_bets.length > 0) {
+            $('.actions_field').each(function() {
+                const $field = $(this);
+                const $buttons = $('.fast_bet', $field);
+                
+                console.log('🔘 Updating', $buttons.length, 'quick bet buttons for demo mode');
+                
+                $buttons.each(function(index) {
+                    if (index < $game_config.quick_bets.length) {
+                        const value = $game_config.quick_bets[index];
+                        const $btn = $(this);
+                        
+                        // Update button text
+                        const displayValue = value < 1 ? value.toFixed(2) : value.toFixed(0);
+                        $btn.text(displayValue);
+                        
+                        // Store value in data attribute
+                        $btn.attr('data-bet-value', value);
+                        
+                        console.log('🔘 Button', index, 'set to:', value);
+                    }
+                });
+                
+                // Update default bet in input
+                if ($game_config.default_bet) {
+                    const $input = $('.ranger input[type="text"]', $field);
+                    $input.val($game_config.default_bet);
+                    
+                    // Update current bet display
+                    $('[data-rel="current_bet"]', $field).html($game_config.default_bet);
+                }
+            });
+            
+            console.log('✅ Demo mode settings applied');
+        }
+    }
+    
     // Start the render loop
     render();
     
