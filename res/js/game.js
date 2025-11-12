@@ -234,9 +234,11 @@ class Plane {
                 if( this.pos > 4 ){ this.pos = 1; }
             }
         } 
-        if( this.trace ){ 
-            this.chart.update({ x:this.x, y:this.y }); 
-        }
+        
+        // Всегда рисуем график (даже после окончания игры)
+        this.chart.update({ x:this.x, y:this.y }); 
+        
+        // Рисуем самолет всегда (включая состояние finish)
         this.img.update({ x:this.x+this.sx, y:this.y+this.sy }); 
         if( this.trace && 2 == 3 ){ 
             this.ctx.closePath();
@@ -1256,7 +1258,7 @@ class Game {
         SETTINGS.timers.finish = $data.delta; 
         this.timer = new Date().getTime(); 
         this.cur_cf = this.win_cf;
-        $plane.trace = false; 
+        $plane.status = "finish"; // Меняем статус вместо trace
         $plane.pos = 5; 
         this.clear_level({ cf: this.win_cf }); 
         $('#loading_level .progresser').css('width','100%').attr('data-freq', '100');
@@ -1305,7 +1307,6 @@ class Game {
         this.cur_cf = 1; 
         $plane.status = "idle"; 
         $plane.pos = 0; 
-        $plane.trace = true; 
         $plane.x = SETTINGS.start.x; 
         $plane.y = SETTINGS.start.y; 
         $('#loading_level').css('display','flex'); 
@@ -1412,9 +1413,53 @@ var $game = new Game({});
 function render( obj ){
     $ctx.clearRect( 0, 0, SETTINGS.w, SETTINGS.h );
     
-    // Оптимизированный фон
-    $ctx.fillStyle = "#001122";
+    // Очень темный фон как на фото
+    var gradient = $ctx.createRadialGradient(SETTINGS.w/2, SETTINGS.h/3, 0, SETTINGS.w/2, SETTINGS.h/2, SETTINGS.w * 0.8);
+    gradient.addColorStop(0, '#3d1f5c'); // Фиолетовый в центре (как на фото)
+    gradient.addColorStop(0.4, '#1a0d2e'); // Темно-фиолетовый
+    gradient.addColorStop(0.7, '#0d0815'); // Очень темный
+    gradient.addColorStop(1, '#000000'); // Черный
+    $ctx.fillStyle = gradient;
     $ctx.fillRect(0, 0, SETTINGS.w, SETTINGS.h);
+    
+    // Рисуем лучи света из левого нижнего угла
+    var startX = SETTINGS.start.x; 
+    var startY = SETTINGS.start.y;
+    var numRays = 18; // Больше лучей
+    var rayLength = Math.sqrt(SETTINGS.w * SETTINGS.w + SETTINGS.h * SETTINGS.h) * 2; // Длина до краев и дальше
+    
+    // Лучи расходятся веером вверх и вправо
+    var startAngle = -Math.PI * 0.8; // Начальный угол
+    var endAngle = 0; // Конечный угол (до горизонтали)
+    
+    for(var i = 0; i < numRays; i++) {
+        var angle = startAngle + (endAngle - startAngle) * (i / (numRays - 1));
+        var x = startX + Math.cos(angle) * rayLength;
+        var y = startY + Math.sin(angle) * rayLength;
+        
+        var rayGradient = $ctx.createLinearGradient(startX, startY, x, y);
+        rayGradient.addColorStop(0, 'rgba(61, 31, 92, 0.12)'); // Фиолетовый как на фото
+        rayGradient.addColorStop(0.2, 'rgba(40, 20, 60, 0.08)');
+        rayGradient.addColorStop(0.5, 'rgba(20, 10, 30, 0.03)');
+        rayGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        
+        $ctx.beginPath();
+        $ctx.moveTo(startX, startY);
+        
+        var angle1 = angle - 0.12; // Увеличил ширину лучей
+        var angle2 = angle + 0.12;
+        var x1 = startX + Math.cos(angle1) * rayLength;
+        var y1 = startY + Math.sin(angle1) * rayLength;
+        var x2 = startX + Math.cos(angle2) * rayLength;
+        var y2 = startY + Math.sin(angle2) * rayLength;
+        
+        $ctx.lineTo(x1, y1);
+        $ctx.lineTo(x2, y2);
+        $ctx.closePath();
+        
+        $ctx.fillStyle = rayGradient;
+        $ctx.fill();
+    }
     
     if( $game ){ $game.update({}); }
     if( $plane ){ 
