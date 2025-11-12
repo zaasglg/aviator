@@ -10,7 +10,9 @@
     ?>
     window.$user = <?= json_encode( $_SESSION['user'] ); ?>;
     window.$users = <?= json_encode( Users::GI()->active() ); ?>;
+    window.$demo_config = <?= isset($_SESSION['demo_config']) ? json_encode($_SESSION['demo_config']) : 'null'; ?>;
     console.log("User data loaded:", window.$user);
+    console.log("Demo config:", window.$demo_config);
     console.log("DEBUG - HOST_ID:", "<?= HOST_ID; ?>");
     console.log("DEBUG - AUTH:", "<?= AUTH; ?>");
     console.log("DEBUG - UID:", "<?= UID; ?>");
@@ -164,16 +166,19 @@
                             <div class="left">
                                 <div class="ranger"> 
                                     <button data-dir="minus"><img src="res/img/minus-grey.svg" alt=""></button>
-                                    <div class="input"><input type="text" value="0.5" autocomplete="off"></div>
+                                    <div class="input"><input type="text" value="<?= isset($_SESSION['user']['default_bet']) ? $_SESSION['user']['default_bet'] : '0.5'; ?>" autocomplete="off"></div>
                                     <button data-dir="plus"><img src="res/img/plus-grey.svg" alt=""></button>
                                 </div>
+                                <?php 
+                                $quick_bets = isset($_SESSION['user']['quick_bets']) ? $_SESSION['user']['quick_bets'] : [2.00, 5.00, 10.00, 50.00];
+                                ?>
                                 <div class="line">
-                                    <button class="fast_bet">2.00</button>
-                                    <button class="fast_bet">5.00</button>
+                                    <button class="fast_bet"><?= number_format($quick_bets[0], 2, '.', ''); ?></button>
+                                    <button class="fast_bet"><?= number_format($quick_bets[1], 2, '.', ''); ?></button>
                                 </div>
                                 <div class="line">
-                                    <button class="fast_bet">10.00</button>
-                                    <button class="fast_bet">50.00</button>
+                                    <button class="fast_bet"><?= number_format($quick_bets[2], 2, '.', ''); ?></button>
+                                    <button class="fast_bet"><?= number_format($quick_bets[3], 2, '.', ''); ?></button>
                                 </div>
                             </div>
                             <div class="right">
@@ -215,16 +220,16 @@
                             <div class="left">
                                 <div class="ranger">
                                     <button data-dir="minus"><img src="res/img/minus-grey.svg" alt=""></button>
-                                    <div class="input"><input type="text" value="0.5" autocomplete="off"></div>
+                                    <div class="input"><input type="text" value="<?= isset($_SESSION['user']['default_bet']) ? $_SESSION['user']['default_bet'] : '0.5'; ?>" autocomplete="off"></div>
                                     <button data-dir="plus"><img src="res/img/plus-grey.svg" alt=""></button>
                                 </div>
                                 <div class="line">
-                                    <button class="fast_bet">2.00</button>
-                                    <button class="fast_bet">5.00</button>
+                                    <button class="fast_bet"><?= number_format($quick_bets[0], 2, '.', ''); ?></button>
+                                    <button class="fast_bet"><?= number_format($quick_bets[1], 2, '.', ''); ?></button>
                                 </div>
                                 <div class="line">
-                                    <button class="fast_bet">10.00</button>
-                                    <button class="fast_bet">50.00</button>
+                                    <button class="fast_bet"><?= number_format($quick_bets[2], 2, '.', ''); ?></button>
+                                    <button class="fast_bet"><?= number_format($quick_bets[3], 2, '.', ''); ?></button>
                                 </div>
                             </div>
                             <div class="right">

@@ -19,52 +19,28 @@
     $demo_country = isset($_SESSION['demo_country']) ? $_SESSION['demo_country'] : 'Venezuela';
     error_log("Demo mode activated for country: " . $demo_country);
     
-    // Устанавливаем валюту для демо режима на основе страны
-    $currency_map = [
-        'Argentina' => 'ARS',
-        'Bolivia' => 'BOB',
-        'Brazil' => 'BRL',
-        'Chile' => 'CLP',
-        'Colombia' => 'COP',
-        'Costa Rica' => 'CRC',
-        'Cuba' => 'CUP',
-        'Dominican Republic' => 'DOP',
-        'Ecuador' => 'USD',
-        'El Salvador' => 'USD',
-        'Guatemala' => 'Q',
-        'Haiti' => 'HTG',
-        'Honduras' => 'HNL',
-        'Mexico' => 'MXN',
-        'Nicaragua' => 'NIO',
-        'Panama' => 'USD',
-        'Paraguay' => 'PYG',
-        'Peru' => 'PEN',
-        'Puerto Rico' => 'USD',
-        'Uruguay' => 'UYU',
-        'Venezuela' => 'VES',
-    ];
+    // Загружаем конфигурации демо счетов
+    $demo_configs = include BASE_DIR . 'demo_config.php';
+    $demo_config = $demo_configs[$demo_country] ?? $demo_configs['default'];
     
-    $exchange_rates = [
-        'ARS' => 350, 'BOB' => 6.9, 'BRL' => 5.0, 'CLP' => 800,
-        'COP' => 4000, 'CRC' => 520, 'CUP' => 24, 'DOP' => 56,
-        'USD' => 1, 'Q' => 7.8, 'HTG' => 132, 'HNL' => 24.5,
-        'MXN' => 17, 'NIO' => 36.5, 'PYG' => 7200, 'PEN' => 3.7,
-        'UYU' => 39, 'VES' => 36
-    ];
+    error_log("Demo config for " . $demo_country . ": " . json_encode($demo_config));
     
-    $demo_currency = $currency_map[$demo_country] ?? 'USD';
-    $demo_rate = $exchange_rates[$demo_currency] ?? 1;
+    $_SESSION['USER_RATE'] = 1; // Для демо режима курс всегда 1 (баланс уже в нужной валюте)
+    $_SESSION['USER_CURRENCY'] = $demo_config['currency'];
+    $_SESSION['aviator_demo'] = $demo_config['balance'];
+    $_SESSION['demo_config'] = $demo_config; // Сохраняем всю конфигурацию
     
-    $_SESSION['USER_RATE'] = $demo_rate; 
-    $_SESSION['USER_CURRENCY'] = $demo_currency;
-    $_SESSION['aviator_demo'] = 500; // Демо баланс в USD
     $_SESSION['user'] = [
         'uid' => UID,
         'name' => 'Demo Player',
         'real_name' => 'Demo Player',
-        'balance' => 500,
+        'balance' => $demo_config['balance'],
         'host_id' => 0,
-        'country' => $demo_country
+        'country' => $demo_country,
+        'quick_bets' => $demo_config['quick_bets'],
+        'min_bet' => $demo_config['min_bet'],
+        'max_bet' => $demo_config['max_bet'],
+        'default_bet' => $demo_config['default_bet']
     ];
     error_log("Demo user created: " . json_encode($_SESSION['user'])); 
 
