@@ -261,7 +261,7 @@ class Game {
         this.current_bets = []; 
         this.max_bet = 500; 
         this.generic_chanse = 99.2;
-        this.factor = 11; 
+        this.factor = 35; // Увеличил с 11 до 35 для получения 1000-1400 игроков 
         this.timer = new Date().getTime(); 
         this.timers = SETTINGS.timers; 
         this.status = "loading"; 
@@ -794,8 +794,10 @@ class Game {
                         $('#current_bets_list ul').append($tmps);
                     }
                     
-                    // Обновляем счетчики
-                    var totalBets = $game.current_bets.length * $game.factor;
+                    // Обновляем счетчики с случайным смещением
+                    var baseBets = $game.current_bets.length * $game.factor;
+                    var randomOffset = Math.floor(Math.random() * 50) - 25; // От -25 до +25
+                    var totalBets = baseBets + randomOffset;
                     $('#game_bets .label').html(totalBets); 
                     $('#bets_wrapper .info_window [data-rel="bets"] .cur').html(totalBets);
                     $('#bets_wrapper .info_window [data-rel="bets"] .total').html(totalBets);
@@ -876,8 +878,10 @@ class Game {
         // Удаляем из DOM
         $('#current_bets_list ul li[data-uid="'+ $user.uid +'"]').remove();
         
-        // Обновляем счетчики
-        var totalBets = $game.current_bets.length * $game.factor;
+        // Обновляем счетчики с случайным смещением
+        var baseBets = $game.current_bets.length * $game.factor;
+        var randomOffset = Math.floor(Math.random() * 50) - 25; // От -25 до +25
+        var totalBets = baseBets + randomOffset;
         $('#game_bets .label').html(totalBets); 
         $('#bets_wrapper .info_window [data-rel="bets"] .cur').html(totalBets);
         $('#bets_wrapper .info_window [data-rel="bets"] .total').html(totalBets);
@@ -888,7 +892,7 @@ class Game {
         var $balance = parseFloat( $obj.balance ); 
         $('[data-rel="balance"]').val( $balance ).html( $balance );
     }
-    bet_complete( $data ){ 
+    bet_complete( $data ) { 
         // ВЫИГРЫШ (WIN)
         console.log("=== WIN ===");
         console.log("Cashing out bet:", $data);
@@ -942,7 +946,7 @@ class Game {
             shouldGenerate = !this.lastBetGeneration || timeSinceLastGeneration > 2000; // Каждые 2 секунды
         }
         
-        if (shouldGenerate && this.current_bets.length < 35) {
+        if (shouldGenerate && this.current_bets.length < 40) { // Увеличил с 35 до 40 для большего количества игроков
             this.lastBetGeneration = currentTime;
             
             // Создаем массив фейковых пользователей если его нет
@@ -1010,8 +1014,10 @@ class Game {
                 }
                 $('#current_bets_list ul').append(htmlToAdd);
                 
-                // Обновляем счетчики одним разом
-                var totalBets = this.current_bets.length * this.factor;
+                // Обновляем счетчики одним разом с случайным смещением
+                var baseBets = this.current_bets.length * this.factor;
+                var randomOffset = Math.floor(Math.random() * 50) - 25; // От -25 до +25
+                var totalBets = baseBets + randomOffset;
                 $('#game_bets .label').html(totalBets); 
                 $('#bets_wrapper .info_window [data-rel="bets"] .cur').html(totalBets);
                 $('#bets_wrapper .info_window [data-rel="bets"] .total').html(totalBets);
@@ -1349,7 +1355,7 @@ class Game {
         
         var $bets = [0.5, 1, 2, 3, 5, 7, 10, 15, 20, 25, 50, 75, 100];
         var betsToAdd = [];
-        var initialBetsCount = Math.floor(Math.random() * 15) + 10; // От 10 до 25 ставок
+        var initialBetsCount = Math.floor(Math.random() * 10) + 30; // От 30 до 40 ставок для большего количества игроков
         
         // Перемешиваем пользователей для случайности
         var shuffledUsers = [...$users].sort(() => Math.random() - 0.5);
@@ -1396,8 +1402,10 @@ class Game {
             }
             $('#current_bets_list ul').html(htmlToAdd);
             
-            // Обновляем счетчики
-            var totalBets = this.current_bets.length * this.factor;
+            // Обновляем счетчики с случайным смещением
+            var baseBets = this.current_bets.length * this.factor;
+            var randomOffset = Math.floor(Math.random() * 50) - 25; // От -25 до +25
+            var totalBets = baseBets + randomOffset;
             $('#game_bets .label').html(totalBets); 
             $('#bets_wrapper .info_window [data-rel="bets"] .cur').html(totalBets);
             $('#bets_wrapper .info_window [data-rel="bets"] .total').html(totalBets);
