@@ -79,21 +79,29 @@
 	// Проверяем параметры URL для режима игры
 	$is_demo_mode = isset($_GET['demo']) && $_GET['demo'] === 'true';
 	$access_token = isset($_GET['access_token']) ? $_GET['access_token'] : null;
-	$country = isset($_GET['country']) ? $_GET['country'] : 'Venezuela';
+	$country = isset($_GET['country']) ? $_GET['country'] : null; // Может быть null
 	
 	// Проверяем разные варианты авторизации
     $auth_user_id = false;
     
     // Режим 1: Demo mode
     if ($is_demo_mode) {
-        error_log("Demo mode activated with country: " . $country);
+        $demo_country = $country ?? 'Venezuela';
+        error_log("Demo mode activated with country: " . $demo_country);
         $_SESSION['demo_mode'] = true;
-        $_SESSION['demo_country'] = $country;
+        $_SESSION['demo_country'] = $demo_country;
         $auth_user_id = false; // Нет авторизации в демо режиме
     }
     // Режим 2: Real mode с access_token
     elseif ($access_token) {
         error_log("Real mode with access_token");
+        
+        // Сначала проверяем параметр country в URL
+        if ($country) {
+            $_SESSION['user_country'] = $country;
+            error_log("User country from URL: " . $country);
+        }
+        
         // Декодируем JWT токен
         try {
             // Простое декодирование JWT (без проверки подписи для примера)
@@ -105,8 +113,8 @@
                     $_SESSION['user_id'] = $auth_user_id;
                     $_SESSION['access_token'] = $access_token;
                     
-                    // Сохраняем страну из токена если есть
-                    if (isset($payload['country'])) {
+                    // Сохраняем страну из токена если есть (только если не было в URL)
+                    if (!$country && isset($payload['country'])) {
                         $_SESSION['user_country'] = $payload['country'];
                         error_log("User country from token: " . $payload['country']);
                     }

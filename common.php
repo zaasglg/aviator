@@ -50,11 +50,12 @@
         // REAL MODE
         error_log("Real mode activated");
         
-        // Получаем страну пользователя из сессии (из JWT токена) или используем Venezuela
+        // Получаем страну пользователя из сессии (из URL или JWT токена)
         $user_country = isset($_SESSION['user_country']) ? $_SESSION['user_country'] : 'Venezuela';
-        error_log("Real mode country: " . $user_country);
+        error_log("Real mode country: " . $user_country . " (from session: " . (isset($_SESSION['user_country']) ? 'yes' : 'no') . ")");
         
         $game_config = $game_configs[$user_country] ?? $game_configs['default'];
+        error_log("Game config for " . $user_country . ": " . json_encode($game_config));
         
         $_SESSION['USER_RATE'] = 1;
         $_SESSION['USER_CURRENCY'] = $game_config['currency'];
