@@ -469,6 +469,7 @@ class Game {
             switch( $game.status ){
                 case "flight": 
                     if( $id ){ 
+                        // Можно вывести ставку (cashout)
                         $('span', $self).html(LOCALIZATION.make_bet_generic_bet); 
                         $self.removeClass('danger').removeClass('warning');
                         $('h3', $self).hide(); 
@@ -478,17 +479,9 @@ class Game {
                         $self.attr('data-id', 0);
                     } 
                     else {
-                        // Размещаем ставку на следующий раунд
-                        console.log("Placing bet for next round - Button", $src, "Bet:", $bet);
-                        $game.user_bets[ $src-1 ] = $bet; 
-                        $game.bet_add({ type:"manual", src:$src, bet:$bet });
-                        $self.removeClass('warning').removeClass('danger'); 
-                        $('span', $self ).html(LOCALIZATION.make_bet_generic_bet);
-                        $('h2', $self).css('display','flex'); 
-                        $('h3', $self).css('display','flex'); // Показываем "Следующий раунд"
-                        $('.actions_field[data-id="'+$src+'"]').addClass('disabled'); 
-                        $('.actions_field[data-id="'+$src+'"] .fast_bet').attr('disabled', "disabled"); 
-                        $('.actions_field[data-id="'+$src+'"] .autoplay').attr('disabled','disabled');
+                        // БЛОКИРУЕМ новые ставки во время полета
+                        console.log("Cannot place bet during flight - Button", $src);
+                        // Ничего не делаем - ставки запрещены во время полета
                     }
                     break; 
                 case "finish": 
@@ -1196,6 +1189,7 @@ class Game {
             var $id = +$self.attr('data-id'); 
             console.log("Loading to flying - Button src:", $src, "id:", $id);
             if( $id ){
+                // Кнопка с активной ставкой - переводим в режим вывода
                 $self.removeClass('danger').addClass('warning'); 
                 $('span', $self).html(LOCALIZATION.make_bet_generic_cashout).css('display', 'flex');
                 $('h2', $self).css('display', 'flex');
@@ -1203,8 +1197,9 @@ class Game {
                 console.log("Button", $src, "set to cashout mode");
             } 
             else {
-                // Кнопка без ставки остается в режиме "сделать ставку" - не изменяем ее состояние
-                console.log("Button", $src, "has no bet - keeping in bet mode");
+                // Кнопка без ставки - блокируем на время полета
+                $self.attr('disabled', 'disabled');
+                console.log("Button", $src, "disabled during flight (no bet)");
             }
         }); 
         $('#loading_level').css('display','none'); 
@@ -1292,7 +1287,7 @@ class Game {
         $('.make_bet span').html(LOCALIZATION.make_bet_generic_bet); 
         $('.make_bet h3').hide(); 
         $('.make_bet h2').css('display','flex'); 
-        $('.make_bet').removeClass('danger').removeClass('warning').attr('data-id', 0); 
+        $('.make_bet').removeClass('danger').removeClass('warning').attr('data-id', 0).removeAttr('disabled'); 
         $('.autoplay').removeAttr('disabled');
         
         setTimeout( $game.balance, 1000 ); 
