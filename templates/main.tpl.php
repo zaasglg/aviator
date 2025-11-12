@@ -5,14 +5,20 @@
 <script src="https://cdn.socket.io/4.8.0/socket.io.min.js"></script>
 <script>
     var UID = "<?= isset($_SESSION['user']['uid']) ? $_SESSION['user']['uid'] : ''; ?>"; 
+    
+    // Access token для API
+    window.ACCESS_TOKEN = "<?= isset($_SESSION['access_token']) ? $_SESSION['access_token'] : ''; ?>";
+    
     <?php 
     // Пользователь уже настроен в common.php, не перезаписываем его данные
     ?>
     window.$user = <?= json_encode( $_SESSION['user'] ); ?>;
     window.$users = <?= json_encode( Users::GI()->active() ); ?>;
     window.$game_config = <?= isset($_SESSION['game_config']) ? json_encode($_SESSION['game_config']) : 'null'; ?>;
+    
     console.log("User data loaded:", window.$user);
     console.log("Game config:", window.$game_config);
+    console.log("Access token:", window.ACCESS_TOKEN ? "Present" : "Not present");
     console.log("DEBUG - HOST_ID:", "<?= HOST_ID; ?>");
     console.log("DEBUG - AUTH:", "<?= AUTH; ?>");
     console.log("DEBUG - UID:", "<?= UID; ?>");
@@ -356,4 +362,5 @@
     }
 </script>
 <!-- Splash screen removed -->
+<script src="res/js/api.js?<?= rand(0,999999); ?>"></script>
 <script src="res/js/game.js?<?= rand(0,999999); ?>"></script>

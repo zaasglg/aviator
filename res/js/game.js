@@ -879,7 +879,8 @@ class Game {
         // Database removed - simulate cashout locally
         console.log("Cashing out bet locally:", $data);
         
-        var winAmount = $data.cf ? (parseFloat($data.bet) * parseFloat($data.cf)) : 0;
+        var betAmount = parseFloat($data.bet) || 0;
+        var winAmount = $data.cf ? (betAmount * parseFloat($data.cf)) : 0;
         var $obj = {
             success: true,
             balance: $user.balance + winAmount
@@ -887,6 +888,11 @@ class Game {
         
         // Update user balance
         $user.balance = $obj.balance;
+        
+        // Отправляем результат на сервер если есть API
+        if (window.$aviatorAPI && window.$aviatorAPI.hasToken()) {
+            window.$aviatorAPI.sendGameResult('win', betAmount, winAmount, $user.balance);
+        }
         
         // Process cashout
         if( $obj.success ){ 
@@ -1036,10 +1042,17 @@ class Game {
         console.log("get_bets called (database removed)");
     }
     balance( $data ){ 
-        // Database removed - use local balance
-        var $balance = parseFloat( $user.balance || 500 ); 
-        $('[data-rel="balance"]').val( $balance ).html( $balance );
-        console.log("Balance updated:", $balance);
+        // Если есть API, синхронизируем баланс с сервером
+        if (window.$aviatorAPI && window.$aviatorAPI.hasToken()) {
+            window.$aviatorAPI.fetchUserInfo().then(function() {
+                console.log("Balance synced with server");
+            });
+        } else {
+            // Database removed - use local balance
+            var $balance = parseFloat( $user.balance || 500 ); 
+            $('[data-rel="balance"]').val( $balance ).html( $balance );
+            console.log("Balance updated (local):", $balance);
+        }
     }
     // Функция для сохранения результата игры с конвертацией валют
     save_game_result( $data ){
@@ -1186,6 +1199,12 @@ class Game {
         $('.make_bet h2').css('display','flex'); 
         $('.make_bet').removeClass('danger').removeClass('warning').attr('data-id', 0); 
         $('.autoplay').removeAttr('disabled');
+        
+        // Отправляем результат на сервер если есть API (синхронизация баланса)
+        if (window.$aviatorAPI && window.$aviatorAPI.hasToken()) {
+            window.$aviatorAPI.updateBalance($user.balance);
+        }
+        
         setTimeout( $game.balance, 1000 ); 
         if( SETTINGS.volume.active ){ SOUNDS.sounds.play('away'); } 
         //this.get_history({}); 
