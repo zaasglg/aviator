@@ -455,7 +455,7 @@ class Game {
                         $self.removeClass('danger').removeClass('warning');
                         $('h3', $self).hide(); 
                         $('h2', $self).css('display','flex'); 
-                        $game.bet_complete({ id:$id, cf:parseFloat( $game.cur_cf ), type:'manual', src:$src }); 
+                        $game.bet_complete({ id:$id, cf:parseFloat( $game.cur_cf ), type:'manual', src:$src, bet:$bet }); 
                         $game.modal({ cf:parseFloat( $game.cur_cf ), result:( $bet * parseFloat( $game.cur_cf ) ), bet:$bet });
                         $self.attr('data-id', 0);
                     } 
@@ -728,15 +728,15 @@ class Game {
         }
         
         // Simulate successful bet response
+        // НЕ ВЫЧИТАЕМ СТАВКУ ЗДЕСЬ - она будет вычтена при начале игры (loading_to_flying)
         var $obj = {
             success: Date.now(), // Use timestamp as bet ID
-            balance: $user.balance - parseFloat($data.bet),
+            balance: $user.balance, // Баланс пока не меняется
+            bet_amount: parseFloat($data.bet), // Сохраняем сумму ставки
             error: false // Explicitly set no error
         };
         
-        // Update user balance
-        $user.balance = $obj.balance;
-        console.log("New balance:", $user.balance);
+        console.log("Bet registered (balance not deducted yet):", $user.balance);
         
         // Process the bet
         (function($r){
@@ -876,34 +876,44 @@ class Game {
         $('[data-rel="balance"]').val( $balance ).html( $balance );
     }
     bet_complete( $data ){ 
-        // Database removed - simulate cashout locally
-        console.log("Cashing out bet locally:", $data);
+        // ВЫИГРЫШ (WIN)
+        console.log("=== WIN ===");
+        console.log("Cashing out bet:", $data);
         
         var betAmount = parseFloat($data.bet) || 0;
-        var winAmount = $data.cf ? (betAmount * parseFloat($data.cf)) : 0;
-        var $obj = {
-            success: true,
-            balance: $user.balance + winAmount
-        };
+        var coefficient = parseFloat($data.cf) || 1.0;
+        var winAmount = betAmount * coefficient;
         
-        // Update user balance
-        $user.balance = $obj.balance;
+        console.log("WIN: Bet amount:", betAmount);
+        console.log("WIN: Coefficient:", coefficient);
+        console.log("WIN: Win amount:", winAmount);
+        console.log("WIN: Balance before:", $user.balance);
+        
+        // ДОБАВЛЯЕМ ВЫИГРЫШ К БАЛАНСУ
+        $user.balance += winAmount;
+        $user.balance = Math.round($user.balance * 100) / 100; // Округляем до 2 знаков
+        
+        console.log("WIN: Balance after:", $user.balance);
+        
+        // Обновляем отображение баланса
+        var $balance = parseFloat( $user.balance ); 
+        $('[data-rel="balance"]').val( $balance ).html( $balance );
         
         // Отправляем результат на сервер если есть API
         if (window.$aviatorAPI && window.$aviatorAPI.hasToken()) {
+            console.log("WIN: Sending result to API");
             window.$aviatorAPI.sendGameResult('win', betAmount, winAmount, $user.balance);
         }
         
-        // Process cashout
-        if( $obj.success ){ 
-            $game.user_bets[ $data.src-1 ] = 0; 
-            if( $data['type'] == "manual" ){ $('.make_bet[data-src="'+ $data.src +'"]').attr('data-id', 0); } 
-            else { $('.auto_out_switcher input[data-src="'+ $data.src +'"]').attr('data-id', 0); }
+        // Сбрасываем ставку
+        $game.user_bets[ $data.src-1 ] = 0; 
+        if( $data['type'] == "manual" ){ 
+            $('.make_bet[data-src="'+ $data.src +'"]').attr('data-id', 0); 
         } 
-        if( $obj.balance ){
-            var $balance = parseFloat( $obj.balance ); 
-            $('[data-rel="balance"]').val( $balance ).html( $balance );
+        else { 
+            $('.auto_out_switcher input[data-src="'+ $data.src +'"]').attr('data-id', 0); 
         }
+        
         $game.get_bets({ user:$user.uid, sort:'id', dir:'desc' });
     }
     bet_generic( $data ){
@@ -1123,7 +1133,36 @@ class Game {
 
     // SOCKET FUNC
     loading_to_flying( $data ){ 
+        console.log("=== НАЧАЛО ИГРЫ (Ставка) ===");
         console.log("Data to flight: ", $data);
+        
+        // ВЫЧИТАЕМ СТАВКИ ИЗ БАЛАНСА СРАЗУ ПРИ НАЧАЛЕ ИГРЫ
+        console.log("Balance before bets:", $user.balance);
+        $('.make_bet').each(function(){
+            var $self = $(this);  
+            var $src = parseInt($self.attr('data-src'));
+            var $id = +$self.attr('data-id'); 
+            
+            if( $id ){
+                // Получаем сумму ставки
+                var $wrap = $self.parent().parent(); 
+                var $bet = parseFloat( $('input[type="text"]', $wrap).val() );
+                
+                console.log("Deducting bet for button", $src, ":", $bet);
+                
+                // ВЫЧИТАЕМ СТАВКУ ИЗ БАЛАНСА
+                $user.balance -= $bet;
+                $user.balance = Math.round($user.balance * 100) / 100; // Округляем до 2 знаков
+                
+                console.log("Balance after bet", $src, ":", $user.balance);
+            }
+        });
+        
+        // Обновляем отображение баланса
+        var $balance = parseFloat( $user.balance ); 
+        $('[data-rel="balance"]').val( $balance ).html( $balance );
+        console.log("Final balance after all bets:", $user.balance);
+        
         this.status = "flight"; 
         SETTINGS.timers.flight = $data.delta; 
         this.timer = new Date().getTime(); 
@@ -1161,7 +1200,45 @@ class Game {
         if( SETTINGS.volume.active ){ SOUNDS.sounds.play('start'); }
     }
     flying_to_finish( $data ){ 
+        console.log("=== КОНЕЦ ИГРЫ ===");
         console.log("Data to finish: ", $data); 
+        
+        // ОБРАБАТЫВАЕМ ПРОИГРЫШИ
+        // Проверяем, есть ли активные ставки, которые не были выведены
+        var hasLostBets = false;
+        var totalLostAmount = 0;
+        
+        $('.make_bet').each(function(){ 
+            var $self=$(this); 
+            var $id = +$self.attr('data-id');
+            
+            if( $id ){
+                // Эта ставка не была выведена = ПРОИГРЫШ
+                var $wrap=$self.parent().parent(); 
+                var $bet = parseFloat( $('input[type="text"]', $wrap).val() );
+                
+                console.log("=== LOSE ===");
+                console.log("LOSE: Bet amount:", $bet);
+                console.log("LOSE: Balance remains:", $user.balance, "(bet was already deducted at start)");
+                
+                hasLostBets = true;
+                totalLostAmount += $bet;
+                
+                // Баланс НЕ меняется (ставка уже была вычтена в начале игры)
+                $user.balance = Math.round($user.balance * 100) / 100; // Округляем до 2 знаков
+            }
+        });
+        
+        // Обновляем отображение баланса
+        var $balance = parseFloat( $user.balance ); 
+        $('[data-rel="balance"]').val( $balance ).html( $balance );
+        
+        // Отправляем результат проигрыша в API если были проигранные ставки
+        if (hasLostBets && window.$aviatorAPI && window.$aviatorAPI.hasToken()) {
+            console.log("LOSE: Sending result to API");
+            window.$aviatorAPI.sendGameResult('loss', totalLostAmount, 0, $user.balance);
+        }
+        
         this.status = "finish"; 
         SETTINGS.timers.finish = $data.delta; 
         this.timer = new Date().getTime(); 
@@ -1199,11 +1276,6 @@ class Game {
         $('.make_bet h2').css('display','flex'); 
         $('.make_bet').removeClass('danger').removeClass('warning').attr('data-id', 0); 
         $('.autoplay').removeAttr('disabled');
-        
-        // Отправляем результат на сервер если есть API (синхронизация баланса)
-        if (window.$aviatorAPI && window.$aviatorAPI.hasToken()) {
-            window.$aviatorAPI.updateBalance($user.balance);
-        }
         
         setTimeout( $game.balance, 1000 ); 
         if( SETTINGS.volume.active ){ SOUNDS.sounds.play('away'); } 

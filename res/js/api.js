@@ -1,250 +1,344 @@
 /**
- * API Integration для Aviator Game
- * Работа с балансом и данными пользователя через API
+ * Aviator Game API Integration
+ * Handles communication with valor-games.co API for real mode
  */
 
-class AviatorAPI {
-    constructor() {
-        this.apiUrl = 'https://api.valor-games.co/api';
-        this.accessToken = window.ACCESS_TOKEN || null;
-        this.userInfo = null;
-    }
+(function() {
+    'use strict';
+
+    // API Configuration
+    const API_BASE_URL = 'https://api.valor-games.co/api';
+    const API_ENDPOINTS = {
+        USER_INFO: '/user/info/',
+        USER_DEPOSIT: '/user/deposit/',
+        USER_LOOKUP: '/user/lookup/'
+    };
 
     /**
-     * Получение информации о пользователе
-     * GET /api/user/info/
+     * Aviator API Class
      */
-    async fetchUserInfo() {
-        if (!this.accessToken) {
-            console.log('No access token - working in demo mode');
-            return null;
+    class AviatorAPI {
+        constructor() {
+            this.accessToken = null;
+            this.isRealMode = false;
+            this.lastBalanceUpdate = 0;
+            this.balanceUpdateThrottle = 1000; // Минимум 1 секунда между обновлениями
+            
+            // Initialize from URL parameters
+            this.init();
         }
 
-        const headers = {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + this.accessToken
-        };
-
-        try {
-            console.log('Fetching user info from API...');
-            const response = await fetch(this.apiUrl + '/user/info/', {
-                method: 'GET',
-                headers: headers
+        /**
+         * Initialize API from URL parameters
+         */
+        init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Get access token from URL
+            this.accessToken = urlParams.get('access_token');
+            
+            // Determine if real mode
+            const mode = urlParams.get('mode');
+            this.isRealMode = mode === 'real' && this.accessToken;
+            
+            // Store token globally
+            if (this.accessToken) {
+                window.ACCESS_TOKEN = this.accessToken;
+            }
+            
+            console.log('API initialized:', {
+                hasToken: !!this.accessToken,
+                isRealMode: this.isRealMode
             });
+            
+            // Fetch initial user info if in real mode
+            if (this.isRealMode) {
+                this.fetchUserInfo();
+            }
+        }
 
-            if (response.status === 401) {
-                console.error('Unauthorized - invalid or expired token');
-                this.accessToken = null;
+        /**
+         * Check if API has valid token
+         */
+        hasToken() {
+            return !!this.accessToken && this.isRealMode;
+        }
+
+        /**
+         * Get authorization headers
+         */
+        getHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + this.accessToken
+            };
+        }
+
+        /**
+         * Fetch user information from API
+         * GET /api/user/info/
+         */
+        async fetchUserInfo() {
+            if (!this.hasToken()) {
+                console.log('No access token - cannot fetch user info');
                 return null;
             }
 
-            if (!response.ok) {
-                throw new Error('API request failed: ' + response.status);
-            }
+            try {
+                console.log('Fetching user info from API...');
+                
+                const response = await fetch(API_BASE_URL + API_ENDPOINTS.USER_INFO, {
+                    method: 'GET',
+                    headers: this.getHeaders()
+                });
 
-            const data = await response.json();
-            console.log('User info received:', data);
-
-            this.userInfo = data;
-
-            // Обновляем данные пользователя
-            if (data && window.$user) {
-                // Обновляем баланс
-                if (data.deposit !== undefined) {
-                    window.$user.balance = parseFloat(data.deposit);
-                    this.updateBalanceDisplay();
-                    console.log('Balance updated from API:', window.$user.balance);
+                if (!response.ok) {
+                    throw new Error('API response was not ok: ' + response.status);
                 }
 
-                // Обновляем страну и валюту
-                if (data.country) {
-                    window.$user.country = data.country;
-                    window.$user.user_id = data.user_id;
+                const data = await response.json();
+                console.log('User info response:', data);
+
+                // Update balance from API
+                if (data && data.deposit !== undefined) {
+                    const apiBalance = parseFloat(data.deposit);
                     
-                    if (data.country_info && data.country_info.currency) {
-                        SETTINGS.currency = data.country_info.currency;
-                        window.$user.currency = data.country_info.currency;
-                        
-                        // Обновляем атрибут body
-                        $('body').attr('data-currency', data.country_info.currency);
-                        
-                        // Обновляем отображение валюты в интерфейсе
-                        $('[data-rel="currency"]').html(data.country_info.currency).text(data.country_info.currency);
-                        
-                        console.log('Currency updated:', SETTINGS.currency);
+                    // Update global user balance
+                    if (window.$user) {
+                        window.$user.balance = apiBalance;
+                    }
+                    
+                    // Update balance display
+                    this.updateBalanceDisplay(apiBalance);
+                    
+                    console.log('Balance updated from API:', apiBalance);
+                }
+
+                // Update currency if available
+                if (data.country_info && data.country_info.currency) {
+                    this.updateCurrency(data.country_info.currency);
+                }
+
+                // Store user ID
+                if (data.user_id) {
+                    if (window.$user) {
+                        window.$user.host_id = data.user_id;
                     }
                 }
 
-                // Обновляем конфигурацию игры для страны
-                if (data.country && window.$game_config) {
-                    this.updateGameConfigForCountry(data.country);
+                return data;
+
+            } catch (error) {
+                console.error('Failed to fetch user info:', error);
+                
+                // Handle specific errors
+                if (error.message.includes('401')) {
+                    console.error('Authentication error - invalid token');
+                } else if (error.message.includes('Load failed') || error.message.includes('CORS')) {
+                    console.error('CORS or network error');
                 }
+                
+                return null;
+            }
+        }
+
+        /**
+         * Send game result to API (WIN or LOSS)
+         * PUT /api/user/deposit/
+         * 
+         * @param {string} gameResult - 'win' or 'loss'
+         * @param {number} betAmount - Amount of bet
+         * @param {number} winAmount - Amount won (0 for loss)
+         * @param {number} finalBalance - Final balance after game
+         */
+        async sendGameResult(gameResult, betAmount, winAmount, finalBalance) {
+            if (!this.hasToken()) {
+                console.log('No access token - skipping API call');
+                return null;
             }
 
-            return data;
-        } catch (error) {
-            console.error('Error fetching user info:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Обновление баланса на сервере
-     * PUT /api/user/deposit/
-     */
-    async updateBalance(newBalance) {
-        if (!this.accessToken) {
-            console.log('No access token - balance not synced to server');
-            return false;
-        }
-
-        const headers = {
-            'Authorization': 'Bearer ' + this.accessToken,
-            'Content-Type': 'application/json'
-        };
-
-        const requestData = {
-            deposit: parseFloat(newBalance).toFixed(2)
-        };
-
-        try {
-            console.log('Updating balance on server:', requestData);
-            const response = await fetch(this.apiUrl + '/user/deposit/', {
-                method: 'PUT',
-                headers: headers,
-                body: JSON.stringify(requestData)
-            });
-
-            if (response.status === 401) {
-                console.error('Unauthorized - invalid or expired token');
-                this.accessToken = null;
-                return false;
+            // Throttle balance updates
+            const now = Date.now();
+            if (now - this.lastBalanceUpdate < this.balanceUpdateThrottle) {
+                console.log('Throttling balance update');
+                return null;
             }
+            this.lastBalanceUpdate = now;
 
-            if (!response.ok) {
-                throw new Error('API request failed: ' + response.status);
+            try {
+                const requestData = {
+                    deposit: parseFloat(finalBalance).toFixed(2)
+                };
+
+                console.log('Sending game result to API:', {
+                    result: gameResult,
+                    bet: betAmount,
+                    win: winAmount,
+                    finalBalance: finalBalance,
+                    data: requestData
+                });
+
+                const response = await fetch(API_BASE_URL + API_ENDPOINTS.USER_DEPOSIT, {
+                    method: 'PUT',
+                    headers: this.getHeaders(),
+                    body: JSON.stringify(requestData)
+                });
+
+                console.log('API response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error('API response was not ok: ' + response.status);
+                }
+
+                const data = await response.json();
+                console.log('API response data:', data);
+
+                // Update balance from API response
+                if (data && data.balance !== undefined) {
+                    const apiBalance = parseFloat(data.balance);
+                    
+                    if (window.$user) {
+                        window.$user.balance = apiBalance;
+                    }
+                    
+                    this.updateBalanceDisplay(apiBalance);
+                    console.log('Balance updated from API response:', apiBalance);
+                    
+                } else if (data && data.new_deposit !== undefined) {
+                    const apiBalance = parseFloat(data.new_deposit);
+                    
+                    if (window.$user) {
+                        window.$user.balance = apiBalance;
+                    }
+                    
+                    this.updateBalanceDisplay(apiBalance);
+                    console.log('Balance updated from API response (new_deposit):', apiBalance);
+                }
+
+                // Fetch fresh user info after game
+                setTimeout(() => {
+                    this.fetchUserInfo().then(userInfo => {
+                        if (userInfo && window.parent && window.parent !== window) {
+                            // Send message to parent window
+                            window.parent.postMessage({
+                                type: 'balanceUpdated',
+                                balance: window.$user ? window.$user.balance : 0,
+                                userId: userInfo.user_id
+                            }, '*');
+                        }
+                    });
+                }, 500);
+
+                return data;
+
+            } catch (error) {
+                console.error('Failed to send game result to API:', error);
+                
+                // Handle specific errors
+                if (error.message.includes('401')) {
+                    console.error('Authentication error - invalid token');
+                } else if (error.message.includes('Load failed') || error.message.includes('CORS')) {
+                    console.error('CORS or network error');
+                }
+                
+                // Update display even on error
+                this.updateBalanceDisplay(finalBalance);
+                
+                return null;
             }
-
-            const data = await response.json();
-            console.log('Balance updated on server:', data);
-            return true;
-        } catch (error) {
-            console.error('Error updating balance:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Отправка результатов игры на сервер
-     */
-    async sendGameResult(gameResult, betAmount, winAmount, finalBalance) {
-        console.log('Sending game result:', {
-            gameResult: gameResult,
-            betAmount: betAmount,
-            winAmount: winAmount,
-            finalBalance: finalBalance
-        });
-
-        // Обновляем баланс на сервере
-        const success = await this.updateBalance(finalBalance);
-
-        if (success) {
-            // Синхронизируем данные с сервером
-            await this.fetchUserInfo();
         }
 
-        return success;
-    }
+        /**
+         * Update balance (simplified version for sync)
+         */
+        async updateBalance(balance) {
+            return this.sendGameResult('sync', 0, 0, balance);
+        }
 
-    /**
-     * Обновление отображения баланса в интерфейсе
-     */
-    updateBalanceDisplay() {
-        if (window.$user && window.$user.balance !== undefined) {
-            const balance = parseFloat(window.$user.balance);
-            const displayBalance = balance.toFixed(2);
+        /**
+         * Update balance display in UI
+         */
+        updateBalanceDisplay(balance) {
+            const formattedBalance = parseFloat(balance).toFixed(2);
             
+            // Update all balance elements
             $('[data-rel="balance"]').each(function() {
-                $(this).val(displayBalance).html(displayBalance).text(displayBalance);
+                $(this).val(formattedBalance).html(formattedBalance).text(formattedBalance);
             });
             
-            $('#main_balance').html(displayBalance);
-            console.log('Balance display updated:', displayBalance);
+            $('#main_balance').html(formattedBalance);
+            
+            console.log('Balance display updated:', formattedBalance);
         }
-    }
 
-    /**
-     * Обновление конфигурации игры для страны
-     */
-    updateGameConfigForCountry(country) {
-        console.log('Updating game config for country:', country);
-        
-        // Конфигурации для разных стран
-        const countryConfigs = {
-            'Colombia': { currency: 'COP', quick_bets: [2500, 5000, 10000, 35000], default_bet: 2500 },
-            'Paraguay': { currency: 'PYG', quick_bets: [50000, 100000, 200000, 700000], default_bet: 50000 },
-            'Ecuador': { currency: 'USD', quick_bets: [0.5, 1, 2, 7], default_bet: 0.5 },
-            'Brazil': { currency: 'BRL', quick_bets: [20, 50, 100, 350], default_bet: 20 },
-            'Argentina': { currency: 'ARS', quick_bets: [150, 300, 600, 2100], default_bet: 150 },
-            'Mexico': { currency: 'MXN', quick_bets: [100, 200, 400, 1400], default_bet: 100 },
-            'Peru': { currency: 'PEN', quick_bets: [20, 50, 100, 350], default_bet: 20 },
-            'Chile': { currency: 'CLP', quick_bets: [5000, 10000, 20000, 70000], default_bet: 5000 },
-            'Uruguay': { currency: 'UYU', quick_bets: [200, 400, 800, 2800], default_bet: 200 },
-            'Bolivia': { currency: 'BOB', quick_bets: [35, 70, 140, 490], default_bet: 35 },
-            'Venezuela': { currency: 'VES', quick_bets: [50000, 100000, 200000, 700000], default_bet: 50000 }
-        };
-        
-        const config = countryConfigs[country] || countryConfigs['Ecuador'];
-        
-        if (config) {
-            // Обновляем quick_bets кнопки
-            $('.fast_bet').each(function(index) {
-                if (config.quick_bets[index] !== undefined) {
-                    $(this).text(config.quick_bets[index].toFixed(2));
-                }
-            });
+        /**
+         * Update currency in UI
+         */
+        updateCurrency(currency) {
+            if (!currency) return;
             
-            // Обновляем default_bet в полях ввода
-            $('.actions_field .ranger input[type="text"]').val(config.default_bet);
+            console.log('Updating currency to:', currency);
             
-            // Обновляем валюту
-            if (config.currency) {
-                SETTINGS.currency = config.currency;
-                $('body').attr('data-currency', config.currency);
-                $('[data-rel="currency"]').html(config.currency).text(config.currency);
+            // Update global settings
+            if (window.SETTINGS) {
+                window.SETTINGS.currency = currency;
             }
             
-            console.log('Game config updated:', config);
+            if (window.GAME_CONFIG) {
+                window.GAME_CONFIG.currency_symbol = currency;
+            }
+            
+            // Update currency display elements
+            $('[data-rel="currency"]').each(function() {
+                $(this).html(currency).val(currency).text(currency);
+            });
+            
+            // Update SVG currency symbols
+            $('svg use').each(function() {
+                const href = $(this).attr('xlink:href');
+                if (href && href.includes('currency.svg')) {
+                    $(this).attr('xlink:href', './res/img/currency.svg#' + currency);
+                }
+            });
+        }
+
+        /**
+         * User lookup (for login)
+         * GET /api/user/lookup/{user_id}/
+         */
+        async lookupUser(userId) {
+            try {
+                console.log('Looking up user:', userId);
+                
+                const response = await fetch(API_BASE_URL + API_ENDPOINTS.USER_LOOKUP + userId + '/', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('API response was not ok: ' + response.status);
+                }
+
+                const data = await response.json();
+                console.log('User lookup response:', data);
+
+                return data;
+
+            } catch (error) {
+                console.error('Failed to lookup user:', error);
+                return null;
+            }
         }
     }
 
-    /**
-     * Проверка наличия токена
-     */
-    hasToken() {
-        return this.accessToken !== null;
+    // Create global API instance
+    window.$aviatorAPI = new AviatorAPI();
+
+    // Export for use in other scripts
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = AviatorAPI;
     }
 
-    /**
-     * Получение информации о пользователе (кэшированная)
-     */
-    getUserInfo() {
-        return this.userInfo;
-    }
-}
-
-// Создаем глобальный экземпляр API
-window.$aviatorAPI = new AviatorAPI();
-
-// Инициализация при загрузке страницы
-$(document).ready(async function() {
-    console.log('Initializing Aviator API...');
-    
-    // Если есть токен, загружаем данные пользователя
-    if (window.$aviatorAPI.hasToken()) {
-        console.log('Access token found, fetching user info...');
-        await window.$aviatorAPI.fetchUserInfo();
-    } else {
-        console.log('No access token - working in demo mode');
-    }
-});
+})();
