@@ -47,81 +47,24 @@
 
 	$input = json_decode( file_get_contents('php://input'), 1, 1024 );
 
-	// Определяем валюту пользователя и курс обмена
-	$user_currency = "USD"; // По умолчанию USD
-	$user_rate = 1; // Курс по умолчанию 1 для USD
+	// Карта валют и курсов (используется в нескольких местах)
+	$currency_map = [
+		'Argentina' => 'ARS', 'Bolivia' => 'BOB', 'Brazil' => 'BRL', 'Chile' => 'CLP',
+		'Colombia' => 'COP', 'Costa Rica' => 'CRC', 'Cuba' => 'CUP', 'Dominican Republic' => 'DOP',
+		'Ecuador' => 'USD', 'El Salvador' => 'USD', 'Guatemala' => 'Q', 'Haiti' => 'HTG',
+		'Honduras' => 'HNL', 'Mexico' => 'MXN', 'Nicaragua' => 'NIO', 'Panama' => 'USD',
+		'Paraguay' => 'PYG', 'Peru' => 'PEN', 'Puerto Rico' => 'USD', 'Uruguay' => 'UYU',
+		'Venezuela' => 'VES',
+	];
 	
-	if (isset($_SESSION['user_id'])) {
-		// Подключаемся к базе данных для получения страны пользователя
-		try {
-			include_once BASE_DIR . "../db.php";
-			$stmt = $conn->prepare("SELECT country FROM users WHERE user_id = :user_id");
-			$stmt->execute([':user_id' => $_SESSION['user_id']]);
-			$user = $stmt->fetch(PDO::FETCH_ASSOC);
-			
-			if ($user && isset($user['country'])) {
-				$currency_map = [
-					'Argentina' => 'ARS',
-					'Bolivia' => 'BOB',
-					'Brazil' => 'BRL',
-					'Chile' => 'CLP',
-					'Colombia' => 'COP',
-					'Costa Rica' => 'CRC',
-					'Cuba' => 'CUP',
-					'Dominican Republic' => 'DOP',
-					'Ecuador' => 'USD',
-					'El Salvador' => 'USD',
-					'Guatemala' => 'Q',
-					'Haiti' => 'HTG',
-					'Honduras' => 'HNL',
-					'Mexico' => 'MXN',
-					'Nicaragua' => 'NIO',
-					'Panama' => 'USD',
-					'Paraguay' => 'PYG',
-					'Peru' => 'PEN',
-					'Puerto Rico' => 'USD',
-					'Uruguay' => 'UYU',
-					'Venezuela' => 'VES',
-				];
-				
-				// Курсы валют к USD (примерные курсы, можно обновлять через API)
-				$exchange_rates = [
-					'ARS' => 350,    // Аргентинский песо
-					'BOB' => 6.9,    // Боливийский боливиано
-					'BRL' => 5.0,    // Бразильский реал
-					'CLP' => 800,    // Чилийский песо
-					'COP' => 4000,   // Колумбийский песо
-					'CRC' => 520,    // Костариканский колон
-					'CUP' => 24,     // Кубинский песо
-					'DOP' => 56,     // Доминиканский песо
-					'USD' => 1,      // Доллар США
-					'Q' => 7.8,      // Гватемальский кетсаль
-					'HTG' => 132,    // Гаитянский ��урд
-					'HNL' => 24.5,   // Гондурасская лемпира
-					'MXN' => 17,     // Мексиканский песо
-					'NIO' => 36.5,   // Никарагуанская кордоба
-					'PYG' => 7200,   // Парагвайский гуарани
-					'PEN' => 3.7,    // Перуанский соль
-					'UYU' => 39,     // Уругвайский песо
-					'VES' => 36,     // Венесуэльский боливар
-				];
-				
-				$user_currency = $currency_map[$user['country']] ?? 'USD';
-				$user_rate = $exchange_rates[$user_currency] ?? 1;
-			}
-		} catch (Exception $e) {
-			// В случае ошибки используем USD по умолчанию
-			$user_currency = "USD";
-			$user_rate = 1;
-		}
-	}
+	$exchange_rates = [
+		'ARS' => 350, 'BOB' => 6.9, 'BRL' => 5.0, 'CLP' => 800,
+		'COP' => 4000, 'CRC' => 520, 'CUP' => 24, 'DOP' => 56,
+		'USD' => 1, 'Q' => 7.8, 'HTG' => 132, 'HNL' => 24.5,
+		'MXN' => 17, 'NIO' => 36.5, 'PYG' => 7200, 'PEN' => 3.7,
+		'UYU' => 39, 'VES' => 36
+	];
 	
-	define('CURRENCY', $user_currency);
-	define('USER_RATE', $user_rate);
-	
-	// Сохраняем курс в сессии для использования в других частях игры
-	$_SESSION['USER_RATE'] = $user_rate;
-	$_SESSION['USER_CURRENCY'] = $user_currency;
 	//
 	// SETTINGS
 	//
@@ -199,6 +142,33 @@
 	}
 	
 	define('UID', $game_uid);  
+	
+	// Определяем валюту ПОСЛЕ обработки параметров URL
+	$user_currency = "USD";
+	$user_rate = 1;
+	
+	// Если демо режим с указанной страной
+	if ($is_demo_mode && isset($country)) {
+		$user_currency = $currency_map[$country] ?? 'USD';
+		$user_rate = $exchange_rates[$user_currency] ?? 1;
+		error_log("Demo mode currency: " . $user_currency . " for country: " . $country);
+	}
+	// Если есть авторизованный пользователь, пытаемся получить его страну
+	elseif (AUTH) {
+		// Здесь можно добавить запрос к БД для получения страны пользователя
+		// Пока используем USD по умолчанию
+		$user_currency = "USD";
+		$user_rate = 1;
+	}
+	
+	define('CURRENCY', $user_currency);
+	define('USER_RATE', $user_rate);
+	
+	$_SESSION['USER_RATE'] = $user_rate;
+	$_SESSION['USER_CURRENCY'] = $user_currency;
+	
+	error_log("Final CURRENCY: " . CURRENCY . ", USER_RATE: " . USER_RATE);
+	
 	//
 	//
 	if( isset( $_SESSION['ADMIN'] ) ){ define('ADMIN', $_SESSION['ADMIN'] ); } 
