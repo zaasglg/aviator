@@ -10,9 +10,9 @@
     ?>
     window.$user = <?= json_encode( $_SESSION['user'] ); ?>;
     window.$users = <?= json_encode( Users::GI()->active() ); ?>;
-    window.$demo_config = <?= isset($_SESSION['demo_config']) ? json_encode($_SESSION['demo_config']) : 'null'; ?>;
+    window.$game_config = <?= isset($_SESSION['game_config']) ? json_encode($_SESSION['game_config']) : 'null'; ?>;
     console.log("User data loaded:", window.$user);
-    console.log("Demo config:", window.$demo_config);
+    console.log("Game config:", window.$game_config);
     console.log("DEBUG - HOST_ID:", "<?= HOST_ID; ?>");
     console.log("DEBUG - AUTH:", "<?= AUTH; ?>");
     console.log("DEBUG - UID:", "<?= UID; ?>");

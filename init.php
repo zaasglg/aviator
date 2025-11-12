@@ -104,6 +104,13 @@
                     $auth_user_id = $payload['user_id'];
                     $_SESSION['user_id'] = $auth_user_id;
                     $_SESSION['access_token'] = $access_token;
+                    
+                    // Сохраняем страну из токена если есть
+                    if (isset($payload['country'])) {
+                        $_SESSION['user_country'] = $payload['country'];
+                        error_log("User country from token: " . $payload['country']);
+                    }
+                    
                     error_log("Decoded user_id from token: " . $auth_user_id);
                 }
             }

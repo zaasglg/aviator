@@ -15,34 +15,69 @@
     file_put_contents($debug_file, date('Y-m-d H:i:s') . " - _GET: " . json_encode($_GET) . "\n", FILE_APPEND);
     file_put_contents($debug_file, date('Y-m-d H:i:s') . " - _REQUEST: " . json_encode($_REQUEST) . "\n", FILE_APPEND);
     
-    // Database connection removed - Demo mode only
-    $demo_country = isset($_SESSION['demo_country']) ? $_SESSION['demo_country'] : 'Venezuela';
-    error_log("Demo mode activated for country: " . $demo_country);
+    // Загружаем конфигурации для всех режимов
+    $game_configs = include BASE_DIR . 'demo_config.php';
     
-    // Загружаем конфигурации демо счетов
-    $demo_configs = include BASE_DIR . 'demo_config.php';
-    $demo_config = $demo_configs[$demo_country] ?? $demo_configs['default'];
+    // Определяем страну пользователя
+    $user_country = 'Venezuela'; // По умолчанию
     
-    error_log("Demo config for " . $demo_country . ": " . json_encode($demo_config));
-    
-    $_SESSION['USER_RATE'] = 1; // Для демо режима курс всегда 1 (баланс уже в нужной валюте)
-    $_SESSION['USER_CURRENCY'] = $demo_config['currency'];
-    $_SESSION['aviator_demo'] = $demo_config['balance'];
-    $_SESSION['demo_config'] = $demo_config; // Сохраняем всю конфигурацию
-    
-    $_SESSION['user'] = [
-        'uid' => UID,
-        'name' => 'Demo Player',
-        'real_name' => 'Demo Player',
-        'balance' => $demo_config['balance'],
-        'host_id' => 0,
-        'country' => $demo_country,
-        'quick_bets' => $demo_config['quick_bets'],
-        'min_bet' => $demo_config['min_bet'],
-        'max_bet' => $demo_config['max_bet'],
-        'default_bet' => $demo_config['default_bet']
-    ];
-    error_log("Demo user created: " . json_encode($_SESSION['user'])); 
+    if (isset($_SESSION['demo_mode']) && $_SESSION['demo_mode']) {
+        // DEMO MODE
+        $user_country = isset($_SESSION['demo_country']) ? $_SESSION['demo_country'] : 'Venezuela';
+        error_log("Demo mode activated for country: " . $user_country);
+        
+        $game_config = $game_configs[$user_country] ?? $game_configs['default'];
+        
+        $_SESSION['USER_RATE'] = 1;
+        $_SESSION['USER_CURRENCY'] = $game_config['currency'];
+        $_SESSION['aviator_demo'] = $game_config['balance'];
+        $_SESSION['game_config'] = $game_config;
+        
+        $_SESSION['user'] = [
+            'uid' => UID,
+            'name' => 'Demo Player',
+            'real_name' => 'Demo Player',
+            'balance' => $game_config['balance'],
+            'host_id' => 0,
+            'country' => $user_country,
+            'quick_bets' => $game_config['quick_bets'],
+            'min_bet' => $game_config['min_bet'],
+            'max_bet' => $game_config['max_bet'],
+            'default_bet' => $game_config['default_bet']
+        ];
+        error_log("Demo user created: " . json_encode($_SESSION['user']));
+    } else {
+        // REAL MODE
+        error_log("Real mode activated");
+        
+        // Получаем страну пользователя из сессии (из JWT токена) или используем Venezuela
+        $user_country = isset($_SESSION['user_country']) ? $_SESSION['user_country'] : 'Venezuela';
+        error_log("Real mode country: " . $user_country);
+        
+        $game_config = $game_configs[$user_country] ?? $game_configs['default'];
+        
+        $_SESSION['USER_RATE'] = 1;
+        $_SESSION['USER_CURRENCY'] = $game_config['currency'];
+        $_SESSION['game_config'] = $game_config;
+        
+        // В реальном режиме баланс берется из БД пользователя
+        // TODO: Интегрировать с реальной БД когда будет подключение
+        $user_balance = 500; // Временное значение
+        
+        $_SESSION['user'] = [
+            'uid' => UID,
+            'name' => 'Player',
+            'real_name' => 'Player',
+            'balance' => $user_balance,
+            'host_id' => AUTH ? (int)AUTH : 0,
+            'country' => $user_country,
+            'quick_bets' => $game_config['quick_bets'],
+            'min_bet' => $game_config['min_bet'],
+            'max_bet' => $game_config['max_bet'],
+            'default_bet' => $game_config['default_bet']
+        ];
+        error_log("Real user created: " . json_encode($_SESSION['user']));
+    } 
 
 
 
