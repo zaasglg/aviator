@@ -1391,12 +1391,20 @@ $(document).ready(function(){
 
 // Connect to WebSocket server on port 2345
 console.log('Connecting to WebSocket server...');
-var socket = io.connect('http://127.0.0.1:2345', {
+// var socket = io.connect('http://127.0.0.1:2345', {
+//     transports: ['websocket', 'polling'],
+//     reconnection: true,
+//     reconnectionDelay: 1000,
+//     reconnectionAttempts: 10
+// });
+
+var socket = io.connect('wss://aviator.valor-games.co/ws/', {
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionAttempts: 10
 });
+
 
 socket.on('connect', function() {
     console.log('✓ Connected to WebSocket server!');
