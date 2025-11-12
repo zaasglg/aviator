@@ -64,6 +64,13 @@ class AviatorAPI {
                     if (data.country_info && data.country_info.currency) {
                         SETTINGS.currency = data.country_info.currency;
                         window.$user.currency = data.country_info.currency;
+                        
+                        // Обновляем атрибут body
+                        $('body').attr('data-currency', data.country_info.currency);
+                        
+                        // Обновляем отображение валюты в интерфейсе
+                        $('[data-rel="currency"]').html(data.country_info.currency).text(data.country_info.currency);
+                        
                         console.log('Currency updated:', SETTINGS.currency);
                     }
                 }
@@ -170,9 +177,45 @@ class AviatorAPI {
      * Обновление конфигурации игры для страны
      */
     updateGameConfigForCountry(country) {
-        // Здесь можно загрузить конфигурацию для конкретной страны
-        // Пока используем уже загруженную конфигурацию
-        console.log('Game config for country:', country);
+        console.log('Updating game config for country:', country);
+        
+        // Конфигурации для разных стран
+        const countryConfigs = {
+            'Colombia': { currency: 'COP', quick_bets: [2500, 5000, 10000, 35000], default_bet: 2500 },
+            'Paraguay': { currency: 'PYG', quick_bets: [50000, 100000, 200000, 700000], default_bet: 50000 },
+            'Ecuador': { currency: 'USD', quick_bets: [0.5, 1, 2, 7], default_bet: 0.5 },
+            'Brazil': { currency: 'BRL', quick_bets: [20, 50, 100, 350], default_bet: 20 },
+            'Argentina': { currency: 'ARS', quick_bets: [150, 300, 600, 2100], default_bet: 150 },
+            'Mexico': { currency: 'MXN', quick_bets: [100, 200, 400, 1400], default_bet: 100 },
+            'Peru': { currency: 'PEN', quick_bets: [20, 50, 100, 350], default_bet: 20 },
+            'Chile': { currency: 'CLP', quick_bets: [5000, 10000, 20000, 70000], default_bet: 5000 },
+            'Uruguay': { currency: 'UYU', quick_bets: [200, 400, 800, 2800], default_bet: 200 },
+            'Bolivia': { currency: 'BOB', quick_bets: [35, 70, 140, 490], default_bet: 35 },
+            'Venezuela': { currency: 'VES', quick_bets: [50000, 100000, 200000, 700000], default_bet: 50000 }
+        };
+        
+        const config = countryConfigs[country] || countryConfigs['Ecuador'];
+        
+        if (config) {
+            // Обновляем quick_bets кнопки
+            $('.fast_bet').each(function(index) {
+                if (config.quick_bets[index] !== undefined) {
+                    $(this).text(config.quick_bets[index].toFixed(2));
+                }
+            });
+            
+            // Обновляем default_bet в полях ввода
+            $('.actions_field .ranger input[type="text"]').val(config.default_bet);
+            
+            // Обновляем валюту
+            if (config.currency) {
+                SETTINGS.currency = config.currency;
+                $('body').attr('data-currency', config.currency);
+                $('[data-rel="currency"]').html(config.currency).text(config.currency);
+            }
+            
+            console.log('Game config updated:', config);
+        }
     }
 
     /**
