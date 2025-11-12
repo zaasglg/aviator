@@ -1,0 +1,13 @@
+{
+    "name": "aviator/game",
+    "description": "Aviator Game WebSocket Server",
+    "require": {
+        "php": ">=7.4",
+        "cboden/ratchet": "^0.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "": "classes/"
+        }
+    }
+}
