@@ -30,6 +30,7 @@ const io = require('socket.io')(server, {
 
 app.get('/', (req, res) => { res.send('WebSocket Server Running on port 2345'); }); 
 
+
 io.sockets.on('connection', (socket) => { 
 	console.log('✓ New client connected! Socket ID:', socket.id); 
 	console.log('  Total clients:', io.engine.clientsCount);
@@ -46,7 +47,8 @@ io.sockets.on('connection', (socket) => {
 	});
 }); 
 
-server.listen(2345, () => { console.log('listening on *:2345'); }); 
+server.listen(2345, '0.0.0.0', () => { console.log('listening on *:2345'); }); 
+
 
 var TIMERS = [
 	{ 'id': 'loading', 'time': 5000 }, 
