@@ -520,6 +520,12 @@
                 window.$game_config.default_bet = config.default_bet;
             }
             
+            // Update game instance max_bet (ВАЖНО!)
+            if (window.$game) {
+                window.$game.max_bet = config.max_bet;
+                console.log('✅ Game max_bet updated to:', config.max_bet);
+            }
+            
             console.log('✅ Country settings updated for', country);
         }
 

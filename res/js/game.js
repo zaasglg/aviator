@@ -424,18 +424,29 @@ class Game {
             var $val = $self.attr('data-bet-value') ? parseFloat($self.attr('data-bet-value')) : parseFloat($self.text()); 
             var $cur = parseFloat( $('input:text', $wrap).val() ); 
             
-            console.log('Fast bet clicked:', $val, 'Current:', $cur, 'Active:', $self.attr('active'));
+            console.log('🔘 Fast bet clicked:', {
+                value: $val,
+                current: $cur,
+                active: $self.attr('active'),
+                'data-bet-value': $self.attr('data-bet-value'),
+                text: $self.text(),
+                max_bet: $game.max_bet
+            });
             
             //if( $cur < $val || $cur % $val ){ $val = $val; } 
             //else { $val = $cur + $val; } 
             if( $self.attr('active') ){ $val = $cur + $val; } 
             $('.fast_bet').removeAttr('active');
             $self.attr('active', 1); 
+            
+            console.log('🔘 Before limit check:', $val, 'max_bet:', $game.max_bet);
             $val = $val < 0.5 ? 0.5 : ( $val > $game.max_bet ? $game.max_bet : $val ); 
+            console.log('🔘 After limit check:', $val);
+            
             $('input:text', $wrap).val( $val );
             $('[data-rel="current_bet"]', $wrap).val( $val ).html( $val );
             
-            console.log('Bet updated to:', $val);
+            console.log('✅ Bet updated to:', $val);
         }); 
         // включение автовывода
         $('#actions_wrapper .actions_field .auto_out_switcher input').off().on('change', function(){
