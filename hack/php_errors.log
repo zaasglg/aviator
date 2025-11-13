@@ -1,0 +1,27 @@
+[30-Jul-2025 16:52:23 UTC] PHP Warning:  require_once(bd.php): Failed to open stream: No such file or directory in /home/valorgames/public_html/hack/testcode.php on line 16
+[30-Jul-2025 16:52:23 UTC] PHP Fatal error:  Uncaught Error: Failed opening required 'bd.php' (include_path='.:/opt/cpanel/ea-php83/root/usr/share/pear') in /home/valorgames/public_html/hack/testcode.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/valorgames/public_html/hack/testcode.php on line 16
+[31-Jul-2025 18:11:24 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:11:35 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:11:36 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:11:49 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:11:52 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:11:55 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:12:02 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:12:13 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:12:28 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:12:41 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:12:47 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:12:55 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:13:01 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:13:09 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:13:10 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:13:11 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:14:25 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:14:28 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:14:29 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:14:31 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:36:04 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
+[31-Jul-2025 18:36:31 UTC] Error: SQLSTATE[HY000]: General error: 1812 Tablespace is missing for table `valorgames_dbvalor`.`users`. in /home/valorgames/public_html/hack/testcode.php on line 34
