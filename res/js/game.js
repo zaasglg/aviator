@@ -760,9 +760,13 @@ class Game {
                     console.log("Updated user_bets:", $game.user_bets, "src:", $data.src);
                     
                     // Добавляем ставку пользователя в список текущих ставок
+                    var userName = $user.real_name || $user.name || "You";
+                    // Маскируем имя пользователя
+                    var maskedName = $game.maskName(userName);
+                    
                     var userBet = {
                         uid: $user.uid,
-                        name: $user.real_name || $user.name || "You",
+                        name: maskedName,  // Используем маскированное имя
                         amount: parseFloat($data.bet),
                         cf: 10.0, // Случайный коэффициент для вывода
                         img: $user.img || 10,
@@ -1027,6 +1031,17 @@ class Game {
     }
     
     // Генерируем фейковых пользователей
+    // Функция для маскировки имени (например, "Alex" -> "a****4")
+    maskName(name) {
+        if (!name || name.length < 2) return name;
+        
+        var firstChar = name.charAt(0).toLowerCase();
+        var lastChar = name.charAt(name.length - 1);
+        var stars = '****';
+        
+        return firstChar + stars + lastChar;
+    }
+    
     generateFakeUsers() {
         var fakeNames = [
             "Alex", "Maria", "John", "Anna", "Mike", "Lisa", "David", "Sarah", "Tom", "Emma",
@@ -1038,9 +1053,13 @@ class Game {
         
         var users = [];
         for (var i = 0; i < fakeNames.length; i++) {
+            var fullName = fakeNames[i];
+            var maskedName = this.maskName(fullName);
+            
             users.push({
                 uid: 1000 + i,
-                name: fakeNames[i],
+                name: maskedName,  // Используем маскированное имя
+                fullName: fullName,  // Сохраняем полное имя на случай если понадобится
                 img: Math.floor(Math.random() * 20) + 1
             });
         }
@@ -1441,6 +1460,7 @@ var $game = new Game({});
 function render( obj ){
     $ctx.clearRect( 0, 0, SETTINGS.w, SETTINGS.h );
     
+<<<<<<< HEAD
     // Очень темный фон как на фото
     var gradient = $ctx.createRadialGradient(SETTINGS.w/2, SETTINGS.h/3, 0, SETTINGS.w/2, SETTINGS.h/2, SETTINGS.w * 0.8);
     gradient.addColorStop(0, '#3d1f5c'); // Фиолетовый в центре (как на фото)
@@ -1487,6 +1507,35 @@ function render( obj ){
         
         $ctx.fillStyle = rayGradient;
         $ctx.fill();
+=======
+    // Рисуем градиентный фон
+    var gradient = $ctx.createLinearGradient(0, 0, 0, SETTINGS.h);
+    gradient.addColorStop(0, "#001a33");    // Темно-синий сверху
+    gradient.addColorStop(0.5, "#002244");  // Средний синий
+    gradient.addColorStop(1, "#001122");    // Темно-синий снизу
+    
+    $ctx.fillStyle = gradient;
+    $ctx.fillRect(0, 0, SETTINGS.w, SETTINGS.h);
+    
+    // Добавляем сетку для эффекта глубины (опционально)
+    $ctx.strokeStyle = "rgba(0, 100, 150, 0.1)";
+    $ctx.lineWidth = 1;
+    
+    // Вертикальные линии
+    for (var x = 0; x < SETTINGS.w; x += 50) {
+        $ctx.beginPath();
+        $ctx.moveTo(x, 0);
+        $ctx.lineTo(x, SETTINGS.h);
+        $ctx.stroke();
+    }
+    
+    // Горизонтальные линии
+    for (var y = 0; y < SETTINGS.h; y += 50) {
+        $ctx.beginPath();
+        $ctx.moveTo(0, y);
+        $ctx.lineTo(SETTINGS.w, y);
+        $ctx.stroke();
+>>>>>>> 738a263 (Save pending changes)
     }
     
     if( $game ){ $game.update({}); }
