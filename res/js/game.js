@@ -1,6 +1,7 @@
 var SETTINGS = {
-    w: document.querySelector('#game_field').offsetWidth, //$('#canvas').width(), 
-    h: document.querySelector('#game_field').offsetHeight, //$('#canvas').height(), 
+    // Ограничиваем размер canvas для десктопов - максимум 1200px
+    w: Math.min(document.querySelector('#game_field').offsetWidth, 1200),
+    h: Math.min(document.querySelector('#game_field').offsetHeight, 800),
     start: {
         x: 20, 
         y: 400  // Fixed position instead of dynamic calculation
@@ -15,7 +16,9 @@ var SETTINGS = {
         music: 0.2, 
         sound: 0.9
     }, 
-    currency: $('body').attr('data-currency') ? $('body').attr('data-currency')  : "USD" 
+    currency: $('body').attr('data-currency') ? $('body').attr('data-currency')  : "USD",
+    // Определяем тип устройства для адаптивной оптимизации
+    isDesktop: window.innerWidth > 1024
 }
 
 function trunc2(val) {
@@ -198,7 +201,7 @@ class Plane {
             images: $plane_image,
             width: this.w,
             height: this.h, 
-            speed: 250  // Увеличено до 250ms для меньшей нагрузки
+            speed: SETTINGS.isDesktop ? 350 : 250  // На десктопе еще медленнее для оптимизации
         });  
         this.chart = obj.chart; 
         this.vel = 3.0;  // Увеличено до 3.0 для компенсации 30 FPS
@@ -212,13 +215,15 @@ class Plane {
             { x:( SETTINGS.w*100 ), y:SETTINGS.h*0.5 }
         ];
         this.pos = 0; 
-        this.trace = obj.trace ? obj.trace : true;
+        this.trace = obj.trace ? obj.trace : false; // Отключаем trace по умолчанию для производительности
     } 
     move( $dir, $speed ){ 
         var $vector = { x: ( $dir.x - this.x ), y: ( $dir.y - this.y ), z: 0 }
-        let V = HELPERS.normalize( $vector ); 
-        this.x += V.x * $speed; 
-        this.y += V.y * $speed; 
+        let V = HELPERS.normalize( $vector );
+        // На десктопе используем еще большую скорость для компенсации низкого FPS
+        var speedMultiplier = SETTINGS.isDesktop ? 1.2 : 1.0;
+        this.x += V.x * $speed * speedMultiplier; 
+        this.y += V.y * $speed * speedMultiplier; 
     }
     update( obj ){ 
         if( this.status == "move" ){
@@ -554,8 +559,9 @@ class Game {
                 else { 
                     this.cur_cf = 1 + 0.5 * ( Math.exp( ( $delta / 1000 )  / 5 ) - 1 );
                     
-                    // Обновляем отображение коэффициента только раз в 100ms (увеличено для оптимизации)
-                    if (!this.lastCfUpdate || ($timer - this.lastCfUpdate) > 100) {
+                    // Обновляем отображение коэффициента - адаптивно для десктопа (реже)
+                    var cfUpdateInterval = SETTINGS.isDesktop ? 150 : 100;
+                    if (!this.lastCfUpdate || ($timer - this.lastCfUpdate) > cfUpdateInterval) {
                         this.lastCfUpdate = $timer;
                         if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
                         if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
@@ -563,8 +569,9 @@ class Game {
                     } 
                     this.autocheck(); 
                     
-                    // Обновляем список ставок только раз в 300ms для оптимизации (увеличено)
-                    if (!this.lastBetsUpdate || ($timer - this.lastBetsUpdate) > 300) {
+                    // Обновляем список ставок - адаптивно для десктопа (реже)
+                    var betsUpdateInterval = SETTINGS.isDesktop ? 400 : 300;
+                    if (!this.lastBetsUpdate || ($timer - this.lastBetsUpdate) > betsUpdateInterval) {
                         this.lastBetsUpdate = $timer;
                         var $total_wins = 0; 
                         for( var $u of this.current_bets ){
@@ -588,8 +595,9 @@ class Game {
                             }
                         }
                     } 
-                    // Оптимизированное обновление кнопок
-                    if (!this.lastButtonUpdate || ($timer - this.lastButtonUpdate) > 200) {
+                    // Оптимизированное обновление кнопок - адаптивно для десктопа
+                    var buttonUpdateInterval = SETTINGS.isDesktop ? 300 : 200;
+                    if (!this.lastButtonUpdate || ($timer - this.lastButtonUpdate) > buttonUpdateInterval) {
                         this.lastButtonUpdate = $timer;
                         $('#actions_wrapper .make_bet.warning').each(function(){ 
                             var $self=$(this); 
@@ -608,8 +616,9 @@ class Game {
                             }
                         });
                     }
-                    // Обновляем статистику только раз в 400ms для оптимизации (увеличено)
-                    if (!this.lastStatsUpdate || ($timer - this.lastStatsUpdate) > 400) {
+                    // Обновляем статистику - адаптивно для десктопа (еще реже)
+                    var statsUpdateInterval = SETTINGS.isDesktop ? 500 : 400;
+                    if (!this.lastStatsUpdate || ($timer - this.lastStatsUpdate) > statsUpdateInterval) {
                         this.lastStatsUpdate = $timer;
                         $('#bets_wrapper .info_window [data-rel="bets"] .label').html( ( $total_wins * this.factor ).toFixed(2) ); 
                         var $players = $('#current_bets_list ul li').length; 
@@ -1511,18 +1520,31 @@ function createBackground() {
     var bgCtx = $backgroundCanvas.getContext('2d');
     
     // Простой темный градиентный фон (без лучей)
-    var gradient = bgCtx.createRadialGradient(SETTINGS.w/2, SETTINGS.h/3, 0, SETTINGS.w/2, SETTINGS.h/2, SETTINGS.w * 0.8);
-    gradient.addColorStop(0, '#2a1545');
-    gradient.addColorStop(0.5, '#1a0d2e');
-    gradient.addColorStop(1, '#0a0510');
-    bgCtx.fillStyle = gradient;
-    bgCtx.fillRect(0, 0, SETTINGS.w, SETTINGS.h);
+    // На больших экранах используем еще более простой градиент
+    if (SETTINGS.isDesktop) {
+        // Простой двухцветный градиент для десктопа (быстрее)
+        var gradient = bgCtx.createLinearGradient(0, 0, 0, SETTINGS.h);
+        gradient.addColorStop(0, '#1a0d2e');
+        gradient.addColorStop(1, '#0a0510');
+        bgCtx.fillStyle = gradient;
+        bgCtx.fillRect(0, 0, SETTINGS.w, SETTINGS.h);
+    } else {
+        // Радиальный градиент для мобильных (красивее)
+        var gradient = bgCtx.createRadialGradient(SETTINGS.w/2, SETTINGS.h/3, 0, SETTINGS.w/2, SETTINGS.h/2, SETTINGS.w * 0.8);
+        gradient.addColorStop(0, '#2a1545');
+        gradient.addColorStop(0.5, '#1a0d2e');
+        gradient.addColorStop(1, '#0a0510');
+        bgCtx.fillStyle = gradient;
+        bgCtx.fillRect(0, 0, SETTINGS.w, SETTINGS.h);
+    }
     
     $backgroundReady = true;
+    console.log('Background created:', SETTINGS.w + 'x' + SETTINGS.h, 'Desktop mode:', SETTINGS.isDesktop);
 }
 
 var lastRenderTime = 0;
-var targetFPS = 30; // Ограничиваем до 30 FPS для стабильности
+// Адаптивный FPS: на десктопе 25 FPS (лучше для больших экранов), на мобильных 30 FPS
+var targetFPS = SETTINGS.isDesktop ? 25 : 30;
 var frameDelay = 1000 / targetFPS;
 
 function render( currentTime ){

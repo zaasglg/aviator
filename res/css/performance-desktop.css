@@ -1,0 +1,81 @@
+/* 
+ * Оптимизации производительности для больших экранов десктопа
+ * Применяется для экранов шире 1024px
+ */
+
+@media screen and (min-width: 1024px) {
+    /* Отключаем GPU-интенсивные эффекты на десктопе */
+    
+    /* Упрощаем анимации */
+    * {
+        animation-duration: 0.3s !important; /* Ускоряем все анимации */
+    }
+    
+    /* Отключаем box-shadow для элементов во время анимации */
+    .flying *,
+    .loading *,
+    .finished * {
+        box-shadow: none !important;
+    }
+    
+    /* Используем transform вместо left/top для лучшей производительности */
+    .plane,
+    .chart,
+    canvas {
+        will-change: transform;
+        transform: translateZ(0); /* GPU acceleration */
+    }
+    
+    /* Упрощаем backdrop-filter на больших экранах */
+    .modal,
+    .overlay,
+    [class*="backdrop"] {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+    
+    /* Отключаем blur эффекты */
+    [class*="blur"] {
+        filter: none !important;
+    }
+    
+    /* Ограничиваем размер canvas контейнера */
+    #game_field {
+        max-width: 1200px;
+        max-height: 800px;
+        margin: 0 auto;
+    }
+    
+    /* Оптимизация для списка ставок */
+    #current_bets_list ul,
+    #previous_bets_list ul {
+        contain: layout style; /* CSS containment для изоляции */
+    }
+    
+    /* Уменьшаем количество перерисовок */
+    .make_bet,
+    .actions_field,
+    [data-rel="balance"] {
+        contain: layout style paint;
+    }
+}
+
+/* Для очень больших экранов (>1920px) - еще более агрессивная оптимизация */
+@media screen and (min-width: 1920px) {
+    /* Отключаем все анимации */
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
+    
+    /* Максимально ограничиваем размер canvas */
+    #game_field {
+        max-width: 1000px;
+        max-height: 700px;
+    }
+    
+    /* Упрощаем отображение */
+    .pulse-ring {
+        display: none !important; /* Убираем pulse эффекты */
+    }
+}

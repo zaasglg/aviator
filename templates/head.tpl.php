@@ -29,6 +29,7 @@
 
     <link rel="stylesheet" type="text/css" href="res/css/reset.css">
     <link rel="stylesheet" type="text/css" href="res/css/style.css?<?= rand(0,999999); ?>">
+    <link rel="stylesheet" type="text/css" href="res/css/performance-desktop.css?<?= rand(0,999999); ?>">
 
     <script src="res/js/jquery.js"></script>
     <script src="res/js/howler.min.js"></script> 
