@@ -1,7 +1,10 @@
 var SETTINGS = {
-    // Ограничиваем размер canvas для десктопов - максимум 1200px
-    w: Math.min(document.querySelector('#game_field').offsetWidth, 1200),
-    h: Math.min(document.querySelector('#game_field').offsetHeight, 800),
+    // Canvas занимает весь экран, но разрешение рендеринга оптимизировано
+    w: document.querySelector('#game_field').offsetWidth,
+    h: document.querySelector('#game_field').offsetHeight,
+    // Для больших экранов используем масштабирование для оптимизации
+    // Реальное разрешение рендеринга будет ниже, но растянуто на весь экран
+    scale: window.innerWidth > 1920 ? 0.75 : (window.innerWidth > 1024 ? 0.85 : 1.0),
     start: {
         x: 20, 
         y: 400  // Fixed position instead of dynamic calculation
@@ -36,14 +39,26 @@ function setBalanceDisplay(val) {
 
 var $canvas = document.querySelector("#canvas");
 var $ctx = $canvas.getContext("2d");
-$canvas.width = SETTINGS.w; 
-$canvas.height = SETTINGS.h;
+
+// Применяем умное масштабирование для больших экранов
+// Canvas рендерится в меньшем разрешении, но растягивается на весь экран через CSS
+$canvas.width = SETTINGS.w * SETTINGS.scale; 
+$canvas.height = SETTINGS.h * SETTINGS.scale;
+
+// Масштабируем контекст для правильного рендеринга
+$ctx.scale(SETTINGS.scale, SETTINGS.scale);
+
+// Canvas занимает весь размер экрана через CSS
+$canvas.style.width = SETTINGS.w + 'px';
+$canvas.style.height = SETTINGS.h + 'px';
 
 console.log("Canvas initialized:", {
-    width: $canvas.width,
-    height: $canvas.height,
-    settingsW: SETTINGS.w,
-    settingsH: SETTINGS.h
+    displayWidth: SETTINGS.w,
+    displayHeight: SETTINGS.h,
+    renderWidth: $canvas.width,
+    renderHeight: $canvas.height,
+    scale: SETTINGS.scale,
+    isDesktop: SETTINGS.isDesktop
 }); 
 
 var SOUNDS = {
@@ -1515,9 +1530,13 @@ var $game = new Game({});
 // Создаем простой фон один раз (без лучей для оптимизации)
 function createBackground() {
     $backgroundCanvas = document.createElement('canvas');
-    $backgroundCanvas.width = SETTINGS.w;
-    $backgroundCanvas.height = SETTINGS.h;
+    // Фон рендерится с учетом масштабирования
+    $backgroundCanvas.width = SETTINGS.w * SETTINGS.scale;
+    $backgroundCanvas.height = SETTINGS.h * SETTINGS.scale;
     var bgCtx = $backgroundCanvas.getContext('2d');
+    
+    // Применяем масштабирование к фоновому контексту
+    bgCtx.scale(SETTINGS.scale, SETTINGS.scale);
     
     // Простой темный градиентный фон (без лучей)
     // На больших экранах используем еще более простой градиент
@@ -1539,7 +1558,12 @@ function createBackground() {
     }
     
     $backgroundReady = true;
-    console.log('Background created:', SETTINGS.w + 'x' + SETTINGS.h, 'Desktop mode:', SETTINGS.isDesktop);
+    console.log('Background created:', {
+        displaySize: SETTINGS.w + 'x' + SETTINGS.h,
+        renderSize: $backgroundCanvas.width + 'x' + $backgroundCanvas.height,
+        scale: SETTINGS.scale,
+        desktopMode: SETTINGS.isDesktop
+    });
 }
 
 var lastRenderTime = 0;

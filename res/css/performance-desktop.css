@@ -39,11 +39,16 @@
         filter: none !important;
     }
     
-    /* Ограничиваем размер canvas контейнера */
+    /* Canvas занимает весь доступный размер без черных краев */
     #game_field {
-        max-width: 1200px;
-        max-height: 800px;
-        margin: 0 auto;
+        width: 100% !important;
+        height: 100% !important;
+    }
+    
+    #canvas {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
     }
     
     /* Оптимизация для списка ставок */
@@ -68,10 +73,10 @@
         transition: none !important;
     }
     
-    /* Максимально ограничиваем размер canvas */
+    /* Canvas все равно занимает весь экран, но без лишних эффектов */
     #game_field {
-        max-width: 1000px;
-        max-height: 700px;
+        width: 100% !important;
+        height: 100% !important;
     }
     
     /* Упрощаем отображение */
