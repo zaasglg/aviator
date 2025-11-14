@@ -553,21 +553,39 @@ class Game {
                 } 
                 else { 
                     this.cur_cf = 1 + 0.5 * ( Math.exp( ( $delta / 1000 )  / 5 ) - 1 );
-                    if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
-                    if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
-                    $('#process_level .current').html( this.cur_cf.toFixed(2)+"x"); 
+                    
+                    // Обновляем отображение коэффициента только раз в 50ms
+                    if (!this.lastCfUpdate || ($timer - this.lastCfUpdate) > 50) {
+                        this.lastCfUpdate = $timer;
+                        if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
+                        if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
+                        $('#process_level .current').html( this.cur_cf.toFixed(2)+"x");
+                    } 
                     this.autocheck(); 
-                    var $total_wins = 0; 
-                    for( var $u of this.current_bets ){
-                        if( this.cur_cf >= $u.cf ){ 
-                            $u.win = true; 
-                            var $line = $('#current_bets_list ul li[data-uid="'+ $u.uid +'"]'); 
-                            if( !$line.hasClass('active') ){
-                                $line.addClass('active'); 
-                                $('.betx', $line).html( ( +$u.cf ).toFixed(2) ).addClass( +$u.cf > 6 ? 'high' : ( +$u.cf > 2 ? 'mid' : '' ) );
-                                $('.win', $line).html( ( +$u.cf * +$u.amount ).toFixed(2) ); 
+                    
+                    // Обновляем список ставок только раз в 150ms для оптимизации
+                    if (!this.lastBetsUpdate || ($timer - this.lastBetsUpdate) > 150) {
+                        this.lastBetsUpdate = $timer;
+                        var $total_wins = 0; 
+                        for( var $u of this.current_bets ){
+                            if( this.cur_cf >= $u.cf ){ 
+                                $u.win = true; 
+                                var $line = $('#current_bets_list ul li[data-uid="'+ $u.uid +'"]'); 
+                                if( !$line.hasClass('active') ){
+                                    $line.addClass('active'); 
+                                    $('.betx', $line).html( ( +$u.cf ).toFixed(2) ).addClass( +$u.cf > 6 ? 'high' : ( +$u.cf > 2 ? 'mid' : '' ) );
+                                    $('.win', $line).html( ( +$u.cf * +$u.amount ).toFixed(2) ); 
+                                }
+                                $total_wins += parseFloat( +$u.cf * +$u.amount ); 
                             }
-                            $total_wins += parseFloat( +$u.cf * +$u.amount ); 
+                        }
+                    } else {
+                        // Просто считаем выигрыши без обновления DOM
+                        var $total_wins = 0;
+                        for( var $u of this.current_bets ){
+                            if( this.cur_cf >= $u.cf ){ 
+                                $total_wins += parseFloat( +$u.cf * +$u.amount ); 
+                            }
                         }
                     } 
                     // Оптимизированное обновление кнопок
@@ -590,12 +608,16 @@ class Game {
                             }
                         });
                     }
-                    $('#bets_wrapper .info_window [data-rel="bets"] .label').html( ( $total_wins * this.factor ).toFixed(2) ); 
-                    var $players = $('#current_bets_list ul li').length; 
-                    var $winners = $('#current_bets_list ul li.active').length ; 
-                    var $perc = $winners / ( $players / 100 )
-                    $('#bets_wrapper .info_window [data-rel="bets"] .cur').html( $winners*this.factor ); 
-                    $('#bets_wrapper .progresser').css('width', $perc+'%');
+                    // Обновляем статистику только раз в 200ms для оптимизации
+                    if (!this.lastStatsUpdate || ($timer - this.lastStatsUpdate) > 200) {
+                        this.lastStatsUpdate = $timer;
+                        $('#bets_wrapper .info_window [data-rel="bets"] .label').html( ( $total_wins * this.factor ).toFixed(2) ); 
+                        var $players = $('#current_bets_list ul li').length; 
+                        var $winners = $('#current_bets_list ul li.active').length ; 
+                        var $perc = $winners / ( $players / 100 )
+                        $('#bets_wrapper .info_window [data-rel="bets"] .cur').html( $winners*this.factor ); 
+                        $('#bets_wrapper .progresser').css('width', $perc+'%');
+                    }
                 }
                 break; 
             case "finish": 
@@ -939,9 +961,9 @@ class Game {
         
         // В начале игры (loading) генерируем чаще
         if (this.status === "loading") {
-            shouldGenerate = !this.lastBetGeneration || timeSinceLastGeneration > 500; // Каждые 0.5 секунды
+            shouldGenerate = !this.lastBetGeneration || timeSinceLastGeneration > 1000; // Каждую 1 секунду
         } else {
-            shouldGenerate = !this.lastBetGeneration || timeSinceLastGeneration > 2000; // Каждые 2 секунды
+            shouldGenerate = !this.lastBetGeneration || timeSinceLastGeneration > 3000; // Каждые 3 секунды
         }
         
         if (shouldGenerate && this.current_bets.length < 40) { // Увеличил с 35 до 40 для большего количества игроков
@@ -998,8 +1020,10 @@ class Game {
                 }
             }
             
-            // Добавляем все ставки одним блоком
+            // Добавляем все ставки одним блоком (оптимизировано)
             if (betsToAdd.length > 0) {
+                // Используем innerHTML вместо append для лучшей производительности
+                var currentHtml = $('#current_bets_list ul').html();
                 var htmlToAdd = '';
                 for (var bet of betsToAdd) {
                     htmlToAdd += `<li data-uid="${ bet.uid }"> 
@@ -1010,7 +1034,7 @@ class Game {
                                 </li>`;
                     this.current_bets.push(bet);
                 }
-                $('#current_bets_list ul').append(htmlToAdd);
+                $('#current_bets_list ul').html(currentHtml + htmlToAdd);
                 
                 // Обновляем счетчики одним разом с случайным смещением
                 var baseBets = this.current_bets.length * this.factor;
@@ -1059,15 +1083,57 @@ class Game {
         return users;
     }
     get_history( $data ){ 
-        // Генерируем начальную историю если её нет
-        if(this.history.length === 0) {
-            for(var i = 0; i < 20; i++) {
-                // Генерируем случайные коэффициенты от 1.00 до 10.00
-                var cf = (Math.random() * 9 + 1).toFixed(2);
-                this.history.push(parseFloat(cf));
+        // Загружаем историю из JSON файла
+        $.ajax({
+            url: "api_history.php?action=get", 
+            type: "json", 
+            method: "get",
+            dataType: "json",
+            error: function($e){ 
+                console.error("Error loading history:", $e);
+                // Если ошибка, генерируем локальную историю
+                if($game.history.length === 0) {
+                    for(var i = 0; i < 100; i++) {
+                        var cf = (Math.random() * 9 + 1).toFixed(2);
+                        $game.history.push(parseFloat(cf));
+                    }
+                }
+                $game.display_history();
+            },
+            success: function($r){
+                if($r && $r.success && $r.history && $r.history.length > 0) {
+                    $game.history = $r.history.map(function(cf) {
+                        return parseFloat(cf);
+                    });
+                } else {
+                    // Если нет данных, генерируем начальную историю
+                    if($game.history.length === 0) {
+                        for(var i = 0; i < 100; i++) {
+                            var cf = (Math.random() * 9 + 1).toFixed(2);
+                            $game.history.push(parseFloat(cf));
+                        }
+                    }
+                }
+                $game.display_history();
             }
-        }
-        
+        });
+    }
+    
+    save_history_to_file(cf) {
+        // Сохраняем новый коэффициент в JSON файл
+        $.ajax({
+            url: "api_history.php?action=add",
+            type: "json",
+            method: "post",
+            contentType: "application/json",
+            data: JSON.stringify({ cf: cf }),
+            error: function($e) {
+                console.error("Error saving history:", $e);
+            }
+        });
+    }
+    
+    display_history() {
         // Отображаем историю
         var $wrap = $('#history_wrapper .wrapper .inner'); 
         if($wrap.length === 0) {
@@ -1075,8 +1141,10 @@ class Game {
         }
         
         $wrap.html('');
-        // Отображаем в прямом порядке - старые слева, новые справа
-        for(var i = 0; i < this.history.length; i++) {
+        // Отображаем последние 50 коэффициентов (НОВЫЕ СЛЕВА, старые справа)
+        var startIndex = Math.max(0, this.history.length - 50);
+        // Идем в обратном порядке - от новых к старым
+        for(var i = this.history.length - 1; i >= startIndex; i--) {
             var amount = this.history[i];
             var $tmps = `<span class="${ amount >= 5 ? 'high' : ( amount >= 2 ? 'mid' : 'low' ) }">${ amount }x</span>`; 
             $wrap.append($tmps);
@@ -1275,10 +1343,12 @@ class Game {
         
         // Добавляем коэффициент в историю
         this.history.push(parseFloat(this.win_cf));
-        if(this.history.length > 20) {
-            this.history.shift(); // Удаляем самый старый если больше 20
-        }
-        this.get_history(); // Обновляем отображение истории
+        
+        // Сохраняем в JSON файл (общая история для всех)
+        this.save_history_to_file(parseFloat(this.win_cf));
+        
+        // Обновляем отображение
+        this.display_history();
         
         this.clear_level({ cf: this.win_cf }); 
         $('#loading_level .progresser').css('width','100%').attr('data-freq', '100');
@@ -1368,7 +1438,7 @@ class Game {
         
         var $bets = [0.5, 1, 2, 3, 5, 7, 10, 15, 20, 25, 50, 75, 100];
         var betsToAdd = [];
-        var initialBetsCount = Math.floor(Math.random() * 10) + 30; // От 30 до 40 ставок для большего количества игроков
+        var initialBetsCount = Math.floor(Math.random() * 5) + 25; // От 25 до 30 ставок (уменьшено для оптимизации)
         
         // Перемешиваем пользователей для случайности
         var shuffledUsers = [...$users].sort(() => Math.random() - 0.5);
