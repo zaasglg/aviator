@@ -198,10 +198,10 @@ class Plane {
             images: $plane_image,
             width: this.w,
             height: this.h, 
-            speed: 150  // Increased from 100 to 150 for slower sprite animation
+            speed: 250  // Увеличено до 250ms для меньшей нагрузки
         });  
         this.chart = obj.chart; 
-        this.vel = 1.5;  // Reduced from 3 to 1.5
+        this.vel = 3.0;  // Увеличено до 3.0 для компенсации 30 FPS
         this.status = "idle"; 
         this.route = [
             { x:SETTINGS.w-( SETTINGS.w*0.20 ), y:SETTINGS.h*0.5 }, 
@@ -223,7 +223,7 @@ class Plane {
     update( obj ){ 
         if( this.status == "move" ){
             if( HELPERS.distance( { x:this.x, y:this.y }, { x:this.route[ this.pos ].x, y:this.route[ this.pos ].y } ) > 5 ){
-                this.move({ x:this.route[ this.pos ].x, y:this.route[ this.pos ].y }, ( !this.pos ? this.vel : ( this.pos > 4 ? this.vel*3 : 0.8 ) ) );  // Reduced multiplier from 10 to 3, and slow speed from 1 to 0.8
+                this.move({ x:this.route[ this.pos ].x, y:this.route[ this.pos ].y }, ( !this.pos ? this.vel : ( this.pos > 4 ? this.vel*6 : 1.6 ) ) );  // Увеличено для 30 FPS
             }  
             else {
                 this.pos += 1; 
@@ -554,8 +554,8 @@ class Game {
                 else { 
                     this.cur_cf = 1 + 0.5 * ( Math.exp( ( $delta / 1000 )  / 5 ) - 1 );
                     
-                    // Обновляем отображение коэффициента только раз в 50ms
-                    if (!this.lastCfUpdate || ($timer - this.lastCfUpdate) > 50) {
+                    // Обновляем отображение коэффициента только раз в 100ms (увеличено для оптимизации)
+                    if (!this.lastCfUpdate || ($timer - this.lastCfUpdate) > 100) {
                         this.lastCfUpdate = $timer;
                         if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
                         if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
@@ -563,8 +563,8 @@ class Game {
                     } 
                     this.autocheck(); 
                     
-                    // Обновляем список ставок только раз в 150ms для оптимизации
-                    if (!this.lastBetsUpdate || ($timer - this.lastBetsUpdate) > 150) {
+                    // Обновляем список ставок только раз в 300ms для оптимизации (увеличено)
+                    if (!this.lastBetsUpdate || ($timer - this.lastBetsUpdate) > 300) {
                         this.lastBetsUpdate = $timer;
                         var $total_wins = 0; 
                         for( var $u of this.current_bets ){
@@ -589,7 +589,7 @@ class Game {
                         }
                     } 
                     // Оптимизированное обновление кнопок
-                    if (!this.lastButtonUpdate || ($timer - this.lastButtonUpdate) > 100) {
+                    if (!this.lastButtonUpdate || ($timer - this.lastButtonUpdate) > 200) {
                         this.lastButtonUpdate = $timer;
                         $('#actions_wrapper .make_bet.warning').each(function(){ 
                             var $self=$(this); 
@@ -608,8 +608,8 @@ class Game {
                             }
                         });
                     }
-                    // Обновляем статистику только раз в 200ms для оптимизации
-                    if (!this.lastStatsUpdate || ($timer - this.lastStatsUpdate) > 200) {
+                    // Обновляем статистику только раз в 400ms для оптимизации (увеличено)
+                    if (!this.lastStatsUpdate || ($timer - this.lastStatsUpdate) > 400) {
                         this.lastStatsUpdate = $timer;
                         $('#bets_wrapper .info_window [data-rel="bets"] .label').html( ( $total_wins * this.factor ).toFixed(2) ); 
                         var $players = $('#current_bets_list ul li').length; 
@@ -1521,7 +1521,18 @@ function createBackground() {
     $backgroundReady = true;
 }
 
-function render( obj ){
+var lastRenderTime = 0;
+var targetFPS = 30; // Ограничиваем до 30 FPS для стабильности
+var frameDelay = 1000 / targetFPS;
+
+function render( currentTime ){
+    // Ограничиваем FPS для лучшей производительности
+    if (currentTime - lastRenderTime < frameDelay) {
+        requestAnimationFrame( render );
+        return;
+    }
+    lastRenderTime = currentTime;
+    
     // Используем кэшированный фон вместо перерисовки
     if($backgroundReady) {
         $ctx.drawImage($backgroundCanvas, 0, 0);
