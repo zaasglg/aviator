@@ -1503,58 +1503,20 @@ var $backgroundReady = false;
 
 var $game = new Game({}); 
 
-// Создаем фон один раз
+// Создаем простой фон один раз (без лучей для оптимизации)
 function createBackground() {
     $backgroundCanvas = document.createElement('canvas');
     $backgroundCanvas.width = SETTINGS.w;
     $backgroundCanvas.height = SETTINGS.h;
     var bgCtx = $backgroundCanvas.getContext('2d');
     
-    // Очень темный фон
+    // Простой темный градиентный фон (без лучей)
     var gradient = bgCtx.createRadialGradient(SETTINGS.w/2, SETTINGS.h/3, 0, SETTINGS.w/2, SETTINGS.h/2, SETTINGS.w * 0.8);
-    gradient.addColorStop(0, '#3d1f5c');
-    gradient.addColorStop(0.4, '#1a0d2e');
-    gradient.addColorStop(0.7, '#0d0815');
-    gradient.addColorStop(1, '#000000');
+    gradient.addColorStop(0, '#2a1545');
+    gradient.addColorStop(0.5, '#1a0d2e');
+    gradient.addColorStop(1, '#0a0510');
     bgCtx.fillStyle = gradient;
     bgCtx.fillRect(0, 0, SETTINGS.w, SETTINGS.h);
-    
-    // Рисуем лучи света
-    var startX = SETTINGS.start.x; 
-    var startY = SETTINGS.start.y;
-    var numRays = 18;
-    var rayLength = Math.sqrt(SETTINGS.w * SETTINGS.w + SETTINGS.h * SETTINGS.h) * 2;
-    var startAngle = -Math.PI * 0.8;
-    var endAngle = 0;
-    
-    for(var i = 0; i < numRays; i++) {
-        var angle = startAngle + (endAngle - startAngle) * (i / (numRays - 1));
-        var x = startX + Math.cos(angle) * rayLength;
-        var y = startY + Math.sin(angle) * rayLength;
-        
-        var rayGradient = bgCtx.createLinearGradient(startX, startY, x, y);
-        rayGradient.addColorStop(0, 'rgba(61, 31, 92, 0.12)');
-        rayGradient.addColorStop(0.2, 'rgba(40, 20, 60, 0.08)');
-        rayGradient.addColorStop(0.5, 'rgba(20, 10, 30, 0.03)');
-        rayGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        
-        bgCtx.beginPath();
-        bgCtx.moveTo(startX, startY);
-        
-        var angle1 = angle - 0.12;
-        var angle2 = angle + 0.12;
-        var x1 = startX + Math.cos(angle1) * rayLength;
-        var y1 = startY + Math.sin(angle1) * rayLength;
-        var x2 = startX + Math.cos(angle2) * rayLength;
-        var y2 = startY + Math.sin(angle2) * rayLength;
-        
-        bgCtx.lineTo(x1, y1);
-        bgCtx.lineTo(x2, y2);
-        bgCtx.closePath();
-        
-        bgCtx.fillStyle = rayGradient;
-        bgCtx.fill();
-    }
     
     $backgroundReady = true;
 }
