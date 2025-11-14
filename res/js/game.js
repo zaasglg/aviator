@@ -728,16 +728,11 @@ class Game {
     } 
     bet_add( $data ){
         // Database removed - simulate bet locally
-        console.log("Adding bet locally:", $data);
-        console.log("Current balance:", $user.balance);
-        console.log("Bet amount:", $data.bet);
         
         // Check if user has enough balance
         if($user.balance < parseFloat($data.bet)) {
-            console.error("Insufficient balance!");
             var $btn = $('.make_bet[data-src="'+$data.src+'"]');
             $btn.removeClass('danger').removeClass('warning');
-            alert("Insufficient balance!");
             return;
         }
         
@@ -749,8 +744,6 @@ class Game {
             bet_amount: parseFloat($data.bet), // Сохраняем сумму ставки
             error: false // Explicitly set no error
         };
-        
-        console.log("Bet registered (balance not deducted yet):", $user.balance);
         
         // Process the bet
         (function($r){
@@ -1075,13 +1068,9 @@ class Game {
             }
         }
         
-        console.log("Updating history display, history length:", this.history.length);
-        console.log("History:", this.history);
-        
         // Отображаем историю
         var $wrap = $('#history_wrapper .wrapper .inner'); 
         if($wrap.length === 0) {
-            console.error("History wrapper not found!");
             return;
         }
         
@@ -1092,8 +1081,6 @@ class Game {
             var $tmps = `<span class="${ amount >= 5 ? 'high' : ( amount >= 2 ? 'mid' : 'low' ) }">${ amount }x</span>`; 
             $wrap.append($tmps);
         }
-        
-        console.log("History display updated, elements:", $wrap.children().length);
     } 
     get_bets( $data ){ 
         // Database removed - no bet history to load
@@ -1181,11 +1168,7 @@ class Game {
 
     // SOCKET FUNC
     loading_to_flying( $data ){ 
-        console.log("=== НАЧАЛО ИГРЫ (Ставка) ===");
-        console.log("Data to flight: ", $data);
-        
         // ВЫЧИТАЕМ СТАВКИ ИЗ БАЛАНСА СРАЗУ ПРИ НАЧАЛЕ ИГРЫ
-        console.log("Balance before bets:", $user.balance);
         $('.make_bet').each(function(){
             var $self = $(this);  
             var $src = parseInt($self.attr('data-src'));
@@ -1196,20 +1179,15 @@ class Game {
                 var $wrap = $self.parent().parent(); 
                 var $bet = parseFloat( $('input[type="text"]', $wrap).val() );
                 
-                console.log("Deducting bet for button", $src, ":", $bet);
-                
                 // ВЫЧИТАЕМ СТАВКУ ИЗ БАЛАНСА
                 $user.balance -= $bet;
                 $user.balance = Math.round($user.balance * 100) / 100; // Округляем до 2 знаков
-                
-                console.log("Balance after bet", $src, ":", $user.balance);
             }
         });
         
         // Обновляем отображение баланса
         var $balance = parseFloat( $user.balance ); 
         $('[data-rel="balance"]').val( $balance ).html( $balance );
-        console.log("Final balance after all bets:", $user.balance);
         
         this.status = "flight"; 
         SETTINGS.timers.flight = $data.delta; 
@@ -1250,9 +1228,7 @@ class Game {
         if( SETTINGS.volume.active ){ SOUNDS.sounds.play('start'); }
     }
     flying_to_finish( $data ){ 
-        console.log("=== КОНЕЦ ИГРЫ ===");
-        console.log("Data to finish: ", $data);
-        console.log("Current win_cf:", this.win_cf); 
+ 
         
         // ОБРАБАТЫВАЕМ ПРОИГРЫШИ
         // Проверяем, есть ли активные ставки, которые не были выведены
@@ -1298,12 +1274,10 @@ class Game {
         $plane.pos = 5; 
         
         // Добавляем коэффициент в историю
-        console.log("Adding coefficient to history:", this.win_cf);
         this.history.push(parseFloat(this.win_cf));
         if(this.history.length > 20) {
             this.history.shift(); // Удаляем самый старый если больше 20
         }
-        console.log("Calling get_history() to update display");
         this.get_history(); // Обновляем отображение истории
         
         this.clear_level({ cf: this.win_cf }); 
@@ -1454,58 +1428,73 @@ class Game {
 
 // Plane will be created in document.ready
 var $plane;  
+var $backgroundCanvas; // Кэшированный фон
+var $backgroundReady = false;
 
 var $game = new Game({}); 
 
-function render( obj ){
-    $ctx.clearRect( 0, 0, SETTINGS.w, SETTINGS.h );
+// Создаем фон один раз
+function createBackground() {
+    $backgroundCanvas = document.createElement('canvas');
+    $backgroundCanvas.width = SETTINGS.w;
+    $backgroundCanvas.height = SETTINGS.h;
+    var bgCtx = $backgroundCanvas.getContext('2d');
     
-    // Очень темный фон как на фото
-    var gradient = $ctx.createRadialGradient(SETTINGS.w/2, SETTINGS.h/3, 0, SETTINGS.w/2, SETTINGS.h/2, SETTINGS.w * 0.8);
-    gradient.addColorStop(0, '#3d1f5c'); // Фиолетовый в центре (как на фото)
-    gradient.addColorStop(0.4, '#1a0d2e'); // Темно-фиолетовый
-    gradient.addColorStop(0.7, '#0d0815'); // Очень темный
-    gradient.addColorStop(1, '#000000'); // Черный
-    $ctx.fillStyle = gradient;
-    $ctx.fillRect(0, 0, SETTINGS.w, SETTINGS.h);
+    // Очень темный фон
+    var gradient = bgCtx.createRadialGradient(SETTINGS.w/2, SETTINGS.h/3, 0, SETTINGS.w/2, SETTINGS.h/2, SETTINGS.w * 0.8);
+    gradient.addColorStop(0, '#3d1f5c');
+    gradient.addColorStop(0.4, '#1a0d2e');
+    gradient.addColorStop(0.7, '#0d0815');
+    gradient.addColorStop(1, '#000000');
+    bgCtx.fillStyle = gradient;
+    bgCtx.fillRect(0, 0, SETTINGS.w, SETTINGS.h);
     
-    // Рисуем лучи света из левого нижнего угла
+    // Рисуем лучи света
     var startX = SETTINGS.start.x; 
     var startY = SETTINGS.start.y;
-    var numRays = 18; // Больше лучей
-    var rayLength = Math.sqrt(SETTINGS.w * SETTINGS.w + SETTINGS.h * SETTINGS.h) * 2; // Длина до краев и дальше
-    
-    // Лучи расходятся веером вверх и вправо
-    var startAngle = -Math.PI * 0.8; // Начальный угол
-    var endAngle = 0; // Конечный угол (до горизонтали)
+    var numRays = 18;
+    var rayLength = Math.sqrt(SETTINGS.w * SETTINGS.w + SETTINGS.h * SETTINGS.h) * 2;
+    var startAngle = -Math.PI * 0.8;
+    var endAngle = 0;
     
     for(var i = 0; i < numRays; i++) {
         var angle = startAngle + (endAngle - startAngle) * (i / (numRays - 1));
         var x = startX + Math.cos(angle) * rayLength;
         var y = startY + Math.sin(angle) * rayLength;
         
-        var rayGradient = $ctx.createLinearGradient(startX, startY, x, y);
-        rayGradient.addColorStop(0, 'rgba(61, 31, 92, 0.12)'); // Фиолетовый как на фото
+        var rayGradient = bgCtx.createLinearGradient(startX, startY, x, y);
+        rayGradient.addColorStop(0, 'rgba(61, 31, 92, 0.12)');
         rayGradient.addColorStop(0.2, 'rgba(40, 20, 60, 0.08)');
         rayGradient.addColorStop(0.5, 'rgba(20, 10, 30, 0.03)');
         rayGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
         
-        $ctx.beginPath();
-        $ctx.moveTo(startX, startY);
+        bgCtx.beginPath();
+        bgCtx.moveTo(startX, startY);
         
-        var angle1 = angle - 0.12; // Увеличил ширину лучей
+        var angle1 = angle - 0.12;
         var angle2 = angle + 0.12;
         var x1 = startX + Math.cos(angle1) * rayLength;
         var y1 = startY + Math.sin(angle1) * rayLength;
         var x2 = startX + Math.cos(angle2) * rayLength;
         var y2 = startY + Math.sin(angle2) * rayLength;
         
-        $ctx.lineTo(x1, y1);
-        $ctx.lineTo(x2, y2);
-        $ctx.closePath();
+        bgCtx.lineTo(x1, y1);
+        bgCtx.lineTo(x2, y2);
+        bgCtx.closePath();
         
-        $ctx.fillStyle = rayGradient;
-        $ctx.fill();
+        bgCtx.fillStyle = rayGradient;
+        bgCtx.fill();
+    }
+    
+    $backgroundReady = true;
+}
+
+function render( obj ){
+    // Используем кэшированный фон вместо перерисовки
+    if($backgroundReady) {
+        $ctx.drawImage($backgroundCanvas, 0, 0);
+    } else {
+        $ctx.clearRect( 0, 0, SETTINGS.w, SETTINGS.h );
     }
     
     if( $game ){ $game.update({}); }
@@ -1669,8 +1658,8 @@ $(document).ready(function() {
     $canvas.width = SETTINGS.w; 
     $canvas.height = SETTINGS.h; 
     
-    console.log("Canvas size:", SETTINGS.w, "x", SETTINGS.h);
-    console.log("Plane start position:", SETTINGS.start);
+    // Создаем кэшированный фон для оптимизации
+    createBackground();
     
     // Create plane with correct settings
     $plane = new Plane({ 
@@ -1689,8 +1678,6 @@ $(document).ready(function() {
             fy: SETTINGS.start.y 
         })
     });
-    
-    console.log("Plane created at:", $plane.x, $plane.y);
     
     // Apply game config settings (for demo mode)
     if (window.$game_config && window.$game) {
