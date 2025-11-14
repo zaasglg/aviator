@@ -1460,7 +1460,6 @@ var $game = new Game({});
 function render( obj ){
     $ctx.clearRect( 0, 0, SETTINGS.w, SETTINGS.h );
     
-<<<<<<< HEAD
     // Очень темный фон как на фото
     var gradient = $ctx.createRadialGradient(SETTINGS.w/2, SETTINGS.h/3, 0, SETTINGS.w/2, SETTINGS.h/2, SETTINGS.w * 0.8);
     gradient.addColorStop(0, '#3d1f5c'); // Фиолетовый в центре (как на фото)
@@ -1507,35 +1506,6 @@ function render( obj ){
         
         $ctx.fillStyle = rayGradient;
         $ctx.fill();
-=======
-    // Рисуем градиентный фон
-    var gradient = $ctx.createLinearGradient(0, 0, 0, SETTINGS.h);
-    gradient.addColorStop(0, "#001a33");    // Темно-синий сверху
-    gradient.addColorStop(0.5, "#002244");  // Средний синий
-    gradient.addColorStop(1, "#001122");    // Темно-синий снизу
-    
-    $ctx.fillStyle = gradient;
-    $ctx.fillRect(0, 0, SETTINGS.w, SETTINGS.h);
-    
-    // Добавляем сетку для эффекта глубины (опционально)
-    $ctx.strokeStyle = "rgba(0, 100, 150, 0.1)";
-    $ctx.lineWidth = 1;
-    
-    // Вертикальные линии
-    for (var x = 0; x < SETTINGS.w; x += 50) {
-        $ctx.beginPath();
-        $ctx.moveTo(x, 0);
-        $ctx.lineTo(x, SETTINGS.h);
-        $ctx.stroke();
-    }
-    
-    // Горизонтальные линии
-    for (var y = 0; y < SETTINGS.h; y += 50) {
-        $ctx.beginPath();
-        $ctx.moveTo(0, y);
-        $ctx.lineTo(SETTINGS.w, y);
-        $ctx.stroke();
->>>>>>> 738a263 (Save pending changes)
     }
     
     if( $game ){ $game.update({}); }
