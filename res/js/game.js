@@ -159,46 +159,69 @@ class Chart {
         this.ctx = obj.ctx; 
         this.sx = obj.sx;       // start.x
         this.sy = obj.sy;       // start.y
-        this.ax = obj.ax;       // arc.x
-        this.ay = obj.ay;       // arc.y 
         this.fx = obj.fx;       // finish.x
         this.fy = obj.fy;       // finish.y
-        this.fill = obj.fill ? obj.fill : 'rgba(255, 0, 0, 0.1)'; 
-        this.stroke = obj.stroke ? obj.stroke : "red"; 
-        this.w = obj.w ? obj.w : 5; 
-        this.line = obj.line ? obj.line : 1; 
+        this.fill = obj.fill ? obj.fill : 'rgba(255, 0, 0, 0.05)'; // Уменьшили прозрачность заливки
+        this.stroke = obj.stroke ? obj.stroke : "#ff1744"; // Яркий красный для линии
+        this.w = obj.w ? obj.w : 3; // Тоньше линия (было 5)
+        this.line = obj.line ? obj.line : 1;
+        this.points = []; // Массив точек для плавной линии
+        this.isFlying = false; // Флаг - рисовать график только во время полета
     }
     update( obj ){
+        // Рисуем график только если самолет летит
+        if (!this.isFlying) return;
+        
         this.fx = obj.x; 
-        this.fy = obj.y; 
-        this.ax = ( this.fx - this.sx ) / 2; 
-        this.ay = ( SETTINGS.h - 20 ); 
+        this.fy = obj.y;
+        
+        // Добавляем точку в массив для создания плавной траектории
+        this.points.push({ x: this.fx, y: this.fy });
+        
+        // Ограничиваем количество точек для производительности
+        if (this.points.length > 200) {
+            this.points.shift();
+        }
+        
         this.draw();
     }
     draw(){
-        // fill
+        if (this.points.length < 2) return;
+        
+        // Рисуем заливку под графиком (очень тонкую)
         this.ctx.beginPath();
-        this.ctx.moveTo( this.sx, this.sy );
-        this.ctx.quadraticCurveTo( this.ax, this.ay, this.fx, this.fy ); 
-        this.ctx.lineTo( this.fx, this.sy ); 
-        this.ctx.closePath(); 
+        this.ctx.moveTo(this.sx, this.sy);
+        
+        for (let i = 0; i < this.points.length; i++) {
+            this.ctx.lineTo(this.points[i].x, this.points[i].y);
+        }
+        
+        this.ctx.lineTo(this.fx, this.sy);
+        this.ctx.closePath();
         this.ctx.fillStyle = this.fill;
         this.ctx.fill();
-        // arc
+        
+        // Рисуем четкую линию траектории полета
         this.ctx.beginPath();
-        this.ctx.moveTo( this.sx, this.sy );
-        this.ctx.quadraticCurveTo( this.ax, this.ay, this.fx, this.fy );
+        this.ctx.moveTo(this.sx, this.sy);
+        
+        for (let i = 0; i < this.points.length; i++) {
+            this.ctx.lineTo(this.points[i].x, this.points[i].y);
+        }
+        
         this.ctx.strokeStyle = this.stroke;
         this.ctx.lineWidth = this.w;
+        this.ctx.lineJoin = 'round'; // Скругленные углы
+        this.ctx.lineCap = 'round'; // Скругленные концы
         this.ctx.stroke();
-        // triangle
+        
+        // Базовая линия (тонкая)
         this.ctx.beginPath();
-        this.ctx.moveTo( this.fx, this.fy );
-        this.ctx.lineTo( this.fx, this.sy );
-        this.ctx.lineTo( this.sx, this.sy );
+        this.ctx.moveTo(this.sx, this.sy);
+        this.ctx.lineTo(this.fx, this.sy);
         this.ctx.strokeStyle = this.stroke;
         this.ctx.lineWidth = this.line;
-        this.ctx.stroke(); 
+        this.ctx.stroke();
     }
 }
 
@@ -1286,7 +1309,14 @@ class Game {
         this.timer = new Date().getTime(); 
         this.win_cf = $data.cf; 
         this.cur_cf = 1; 
-        $plane.status = "move"; 
+        $plane.status = "move";
+        
+        // Очищаем и включаем рисование графика
+        if ($plane.chart) {
+            $plane.chart.points = [];
+            $plane.chart.isFlying = true;
+        }
+        
         $plane.pos = 0;  
         $plane.x = SETTINGS.start.x; 
         $plane.y = SETTINGS.start.y; 
@@ -1421,7 +1451,14 @@ class Game {
         $plane.status = "idle"; 
         $plane.pos = 0; 
         $plane.x = SETTINGS.start.x; 
-        $plane.y = SETTINGS.start.y; 
+        $plane.y = SETTINGS.start.y;
+        
+        // Очищаем массив точек графика и отключаем рисование
+        if ($plane.chart) {
+            $plane.chart.points = [];
+            $plane.chart.isFlying = false;
+        }
+        
         $('#loading_level').css('display','flex'); 
         $('#process_level').css('display', 'none');
         $('#complete_level').css('display', 'none');
@@ -1527,7 +1564,7 @@ var $backgroundReady = false;
 
 var $game = new Game({}); 
 
-// Создаем простой фон один раз (без лучей для оптимизации)
+// Создаем прозрачный фон (без градиента для оптимизации и видимости интерфейса)
 function createBackground() {
     $backgroundCanvas = document.createElement('canvas');
     // Фон рендерится с учетом масштабирования
@@ -1538,27 +1575,11 @@ function createBackground() {
     // Применяем масштабирование к фоновому контексту
     bgCtx.scale(SETTINGS.scale, SETTINGS.scale);
     
-    // Простой темный градиентный фон (без лучей)
-    // На больших экранах используем еще более простой градиент
-    if (SETTINGS.isDesktop) {
-        // Простой двухцветный градиент для десктопа (быстрее)
-        var gradient = bgCtx.createLinearGradient(0, 0, 0, SETTINGS.h);
-        gradient.addColorStop(0, '#1a0d2e');
-        gradient.addColorStop(1, '#0a0510');
-        bgCtx.fillStyle = gradient;
-        bgCtx.fillRect(0, 0, SETTINGS.w, SETTINGS.h);
-    } else {
-        // Радиальный градиент для мобильных (красивее)
-        var gradient = bgCtx.createRadialGradient(SETTINGS.w/2, SETTINGS.h/3, 0, SETTINGS.w/2, SETTINGS.h/2, SETTINGS.w * 0.8);
-        gradient.addColorStop(0, '#2a1545');
-        gradient.addColorStop(0.5, '#1a0d2e');
-        gradient.addColorStop(1, '#0a0510');
-        bgCtx.fillStyle = gradient;
-        bgCtx.fillRect(0, 0, SETTINGS.w, SETTINGS.h);
-    }
+    // Полностью прозрачный фон - позволяет видеть интерфейс игры под canvas
+    bgCtx.clearRect(0, 0, SETTINGS.w, SETTINGS.h);
     
     $backgroundReady = true;
-    console.log('Background created:', {
+    console.log('Transparent background created:', {
         displaySize: SETTINGS.w + 'x' + SETTINGS.h,
         renderSize: $backgroundCanvas.width + 'x' + $backgroundCanvas.height,
         scale: SETTINGS.scale,
@@ -1579,11 +1600,12 @@ function render( currentTime ){
     }
     lastRenderTime = currentTime;
     
-    // Используем кэшированный фон вместо перерисовки
+    // ВАЖНО: Полностью очищаем canvas каждый кадр
+    $ctx.clearRect(0, 0, SETTINGS.w, SETTINGS.h);
+    
+    // Рисуем прозрачный фон (если нужен)
     if($backgroundReady) {
         $ctx.drawImage($backgroundCanvas, 0, 0);
-    } else {
-        $ctx.clearRect( 0, 0, SETTINGS.w, SETTINGS.h );
     }
     
     if( $game ){ $game.update({}); }
@@ -1761,10 +1783,10 @@ $(document).ready(function() {
             ctx: $ctx, 
             sx: SETTINGS.start.x, 
             sy: SETTINGS.start.y, 
-            ax: SETTINGS.start.x, 
-            ay: SETTINGS.start.y, 
             fx: SETTINGS.start.x, 
-            fy: SETTINGS.start.y 
+            fy: SETTINGS.start.y,
+            stroke: "#ff1744", // Яркий красный
+            w: 3 // Толщина линии
         })
     });
     
