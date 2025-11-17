@@ -308,7 +308,8 @@ class Game {
         //$('#loading_level').css('display','flex'); 
         //$('#process_level').css('display', 'none');
         //$('#complete_level').css('display', 'none');
-        render();
+        
+        // НЕ ВЫЗЫВАЕМ render() здесь - он будет вызван в $(document).ready
     }
     bind(){
         console.log("bind() function started");
@@ -1099,6 +1100,7 @@ class Game {
     }
     get_history( $data ){ 
         // Загружаем историю из JSON файла
+        var self = this; // Сохраняем контекст
         $.ajax({
             url: "api_history.php?action=get", 
             type: "json", 
@@ -1107,29 +1109,31 @@ class Game {
             error: function($e){ 
                 console.error("Error loading history:", $e);
                 // Если ошибка, генерируем локальную историю
-                if($game.history.length === 0) {
+                if(!self.history || self.history.length === 0) {
+                    self.history = [];
                     for(var i = 0; i < 100; i++) {
                         var cf = (Math.random() * 9 + 1).toFixed(2);
-                        $game.history.push(parseFloat(cf));
+                        self.history.push(parseFloat(cf));
                     }
                 }
-                $game.display_history();
+                self.display_history();
             },
             success: function($r){
                 if($r && $r.success && $r.history && $r.history.length > 0) {
-                    $game.history = $r.history.map(function(cf) {
+                    self.history = $r.history.map(function(cf) {
                         return parseFloat(cf);
                     });
                 } else {
                     // Если нет данных, генерируем начальную историю
-                    if($game.history.length === 0) {
+                    if(!self.history || self.history.length === 0) {
+                        self.history = [];
                         for(var i = 0; i < 100; i++) {
                             var cf = (Math.random() * 9 + 1).toFixed(2);
-                            $game.history.push(parseFloat(cf));
+                            self.history.push(parseFloat(cf));
                         }
                     }
                 }
-                $game.display_history();
+                self.display_history();
             }
         });
     }
@@ -1573,10 +1577,10 @@ var targetFPS = 60;
 var frameDelay = 1000 / targetFPS;
 var frameCount = 0; // Счетчик кадров для пропуска некритичных обновлений
 
-// Мониторинг производительности
+// Мониторинг производительности - ИНИЦИАЛИЗАЦИЯ ДО ВЫЗОВА render()
 var performanceStats = {
     frameCount: 0,
-    lastLogTime: 0,
+    lastLogTime: performance.now(),
     renderTimes: [],
     slowFrames: 0,
     fps: 0
