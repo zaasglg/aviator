@@ -2,6 +2,7 @@
  * Оптимизации производительности для больших экранов десктопа
  * Применяется для экранов шире 1024px
  * ОБНОВЛЕНО: Максимальная оптимизация для плавного 60 FPS
+ * СПЕЦИАЛЬНО ДЛЯ МОНИТОРОВ 32+ ДЮЙМА (>2000px)
  */
 
 @media screen and (min-width: 1024px) {
@@ -77,24 +78,66 @@
     }
 }
 
-/* Для очень больших экранов (>1920px) - максимальная производительность */
+/* СПЕЦИАЛЬНАЯ ОПТИМИЗАЦИЯ ДЛЯ МОНИТОРОВ 32 ДЮЙМА (>=1920px) */
 @media screen and (min-width: 1920px) {
-    /* Минимум анимаций */
+    /* Агрессивная оптимизация для больших мониторов 1920x1080 и выше */
+    
+    /* Упрощаем все анимации */
     *:not(#canvas):not(.plane):not(.chart) {
-        animation: none !important;
-        transition: none !important;
+        animation-duration: 0.1s !important;
+        transition-duration: 0.1s !important;
     }
     
-    /* Убираем декоративные эффекты */
+    /* Убираем все декоративные эффекты */
     .pulse-ring,
     [class*="glow"],
-    [class*="shine"] {
+    [class*="shine"],
+    [class*="gradient"] {
         display: none !important;
     }
     
-    /* Canvas на весь экран с максимальной оптимизацией */
+    /* Оптимизируем рендеринг текста */
+    * {
+        text-rendering: optimizeSpeed !important;
+        -webkit-font-smoothing: antialiased !important;
+        -moz-osx-font-smoothing: grayscale !important;
+    }
+    
+    /* Canvas с масштабированием для производительности */
     #canvas {
-        image-rendering: -webkit-optimize-contrast;
-        image-rendering: crisp-edges;
+        image-rendering: -webkit-optimize-contrast !important;
+        image-rendering: crisp-edges !important;
+        /* Дополнительное GPU ускорение */
+        transform: translate3d(0, 0, 0) !important;
+    }
+    
+    /* Упрощаем списки ставок */
+    #current_bets_list ul li,
+    #previous_bets_list ul li {
+        contain: strict !important;
+        will-change: auto !important;
+    }
+    
+    /* Отключаем сложные эффекты для кнопок */
+    .make_bet:hover,
+    .make_bet:active,
+    .make_bet.warning,
+    .make_bet.danger {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+}
+
+/* Для очень больших экранов (>1920px) */
+@media screen and (min-width: 1920px) {
+    /* Убираем pulse эффекты */
+    .pulse-ring {
+        display: none !important;
+    }
+    
+    /* Оптимизируем обновление коэффициента */
+    #process_level .current {
+        font-feature-settings: "tnum" !important;
+        font-variant-numeric: tabular-nums !important;
     }
 }

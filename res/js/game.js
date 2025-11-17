@@ -2,9 +2,9 @@ var SETTINGS = {
     // Canvas занимает весь экран с оптимизацией для больших мониторов
     w: document.querySelector('#game_field').offsetWidth,
     h: document.querySelector('#game_field').offsetHeight,
-    // Для экранов 32+ дюймов (>2000px) используем масштабирование для производительности
+    // Для экранов 32+ дюймов (>1600px, например 1920x1080) используем масштабирование для производительности
     // Для обычных экранов - полное разрешение
-    scale: window.innerWidth > 2000 ? 0.8 : (window.innerWidth > 1600 ? 0.9 : 1.0),
+    scale: window.innerWidth >= 1920 ? 0.85 : (window.innerWidth > 1600 ? 0.9 : 1.0),
     start: {
         x: 20, 
         y: 400  // Fixed position instead of dynamic calculation
@@ -60,7 +60,8 @@ console.log("Canvas initialized:", {
     scale: SETTINGS.scale,
     isDesktop: SETTINGS.isDesktop,
     screenSize: window.innerWidth + 'x' + window.innerHeight,
-    isLargeMonitor: window.innerWidth > 2000
+    isLargeMonitor: window.innerWidth >= 1920,
+    optimizedFor32inch: window.innerWidth >= 1920 && window.innerWidth <= 2560
 }); 
 
 var SOUNDS = {
@@ -181,8 +182,8 @@ class Chart {
         this.points.push({ x: this.fx, y: this.fy });
         
         // КРИТИЧНО: Ограничиваем количество точек для производительности
-        // На больших экранах (>2000px) используем меньше точек
-        var maxPoints = window.innerWidth > 2000 ? 60 : 100;
+        // На больших экранах (>=1920px, 32 дюйма) используем меньше точек
+        var maxPoints = window.innerWidth >= 1920 ? 75 : 100;
         if (this.points.length > maxPoints) {
             this.points.shift();
         }
@@ -231,7 +232,7 @@ class Plane {
             images: $plane_image,
             width: this.w,
             height: this.h, 
-            speed: window.innerWidth > 2000 ? 300 : 200  // Медленнее анимация на больших экранах
+            speed: window.innerWidth >= 1920 ? 250 : 200  // Медленнее анимация на больших экранах (32")
         });  
         this.chart = obj.chart; 
         this.vel = 2.0;  // Оптимальная скорость для 60 FPS
@@ -583,8 +584,8 @@ class Game {
                     this.cur_cf = 1 + 0.5 * ( Math.exp( ( $delta / 1000 )  / 5 ) - 1 );
                     
                     // Обновляем отображение коэффициента реже для лучшей производительности
-                    // На больших экранах (>2000px) обновляем еще реже
-                    var cfUpdateInterval = window.innerWidth > 2000 ? 150 : 100;
+                    // На больших экранах (>=1920px, 32 дюйма) обновляем реже
+                    var cfUpdateInterval = window.innerWidth >= 1920 ? 150 : 100;
                     if (!this.lastCfUpdate || ($timer - this.lastCfUpdate) > cfUpdateInterval) {
                         var domStart = performance.now();
                         this.lastCfUpdate = $timer;
@@ -608,8 +609,8 @@ class Game {
                         }
                     } 
                     // Оптимизированное обновление кнопок - реже для экономии CPU
-                    // На больших экранах обновляем еще реже
-                    var buttonUpdateInterval = window.innerWidth > 2000 ? 500 : 300;
+                    // На больших экранах (>=1920px) обновляем реже
+                    var buttonUpdateInterval = window.innerWidth >= 1920 ? 400 : 300;
                     if (!this.lastButtonUpdate || ($timer - this.lastButtonUpdate) > buttonUpdateInterval) {
                         var buttonStart = performance.now();
                         this.lastButtonUpdate = $timer;
@@ -1758,7 +1759,8 @@ $(document).ready(function() {
     console.log("🖥️ Screen resolution:", window.innerWidth + 'x' + window.innerHeight);
     console.log("🔧 Scale:", SETTINGS.scale);
     console.log("💻 Is Desktop:", SETTINGS.isDesktop);
-    console.log("📺 Large monitor (>2000px):", window.innerWidth > 2000);
+    console.log("📺 Large monitor (>=1920px, 32\"):", window.innerWidth >= 1920);
+    console.log("🎯 Optimizations active:", window.innerWidth >= 1920);
     console.log("🎯 Target FPS:", targetFPS);
     
     // Initialize balance display
