@@ -177,8 +177,8 @@ class Chart {
         // Добавляем точку в массив для создания плавной траектории
         this.points.push({ x: this.fx, y: this.fy });
         
-        // Ограничиваем количество точек для производительности
-        if (this.points.length > 200) {
+        // КРИТИЧНО: Ограничиваем количество точек до 100 для лучшей производительности
+        if (this.points.length > 100) {
             this.points.shift();
         }
         
@@ -187,20 +187,8 @@ class Chart {
     draw(){
         if (this.points.length < 2) return;
         
-        // Рисуем заливку под графиком (очень тонкую)
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.sx, this.sy);
-        
-        for (let i = 0; i < this.points.length; i++) {
-            this.ctx.lineTo(this.points[i].x, this.points[i].y);
-        }
-        
-        this.ctx.lineTo(this.fx, this.sy);
-        this.ctx.closePath();
-        this.ctx.fillStyle = this.fill;
-        this.ctx.fill();
-        
-        // Рисуем четкую линию траектории полета
+        // ОТКЛЮЧЕНА заливка для максимальной производительности
+        // Рисуем только линию траектории полета
         this.ctx.beginPath();
         this.ctx.moveTo(this.sx, this.sy);
         
@@ -210,8 +198,8 @@ class Chart {
         
         this.ctx.strokeStyle = this.stroke;
         this.ctx.lineWidth = this.w;
-        this.ctx.lineJoin = 'round'; // Скругленные углы
-        this.ctx.lineCap = 'round'; // Скругленные концы
+        this.ctx.lineJoin = 'round';
+        this.ctx.lineCap = 'round';
         this.ctx.stroke();
         
         // Базовая линия (тонкая)
@@ -264,34 +252,26 @@ class Plane {
     update( obj ){ 
         if( this.status == "move" ){
             if( HELPERS.distance( { x:this.x, y:this.y }, { x:this.route[ this.pos ].x, y:this.route[ this.pos ].y } ) > 5 ){
-                this.move({ x:this.route[ this.pos ].x, y:this.route[ this.pos ].y }, ( !this.pos ? this.vel : ( this.pos > 4 ? this.vel*6 : 1.6 ) ) );  // Увеличено для 30 FPS
+                this.move({ x:this.route[ this.pos ].x, y:this.route[ this.pos ].y }, ( !this.pos ? this.vel : ( this.pos > 4 ? this.vel*6 : 1.6 ) ) );
             }  
             else {
                 this.pos += 1; 
                 if( this.pos >= this.route.length ){ 
                     this.pos = 0; 
-                    //this.status = "idle"; 
                 } 
                 if( this.pos > 4 ){ this.pos = 1; }
             }
         } 
         
-        // Всегда рисуем график (даже после окончания игры)
-        this.chart.update({ x:this.x, y:this.y }); 
-        
-        // Рисуем самолет всегда (включая состояние finish)
-        this.img.update({ x:this.x+this.sx, y:this.y+this.sy }); 
-        if( this.trace && 2 == 3 ){ 
-            this.ctx.closePath();
-            this.ctx.beginPath(); 
-            this.ctx.lineWidth = 1; 
-            this.ctx.strokeStyle = "blue"; 
-            this.ctx.fillStyle = "blue"; 
-            this.ctx.arc( this.x, this.y, 5, 0*(3.14/180), 360*(3.14/180), false ); 
-            this.ctx.fill(); 
-            this.ctx.stroke(); 
-            this.ctx.closePath(); 
+        // Обновляем график только во время полета
+        if( this.status == "move" ){
+            this.chart.update({ x:this.x, y:this.y }); 
         }
+        
+        // Рисуем самолет
+        this.img.update({ x:this.x+this.sx, y:this.y+this.sy }); 
+        
+        // Убрали trace debug код для производительности
     }
 } 
 
@@ -595,8 +575,8 @@ class Game {
                 else { 
                     this.cur_cf = 1 + 0.5 * ( Math.exp( ( $delta / 1000 )  / 5 ) - 1 );
                     
-                    // Обновляем отображение коэффициента чаще для плавности
-                    var cfUpdateInterval = 50; // Каждые 50ms для плавного отображения
+                    // Обновляем отображение коэффициента реже для лучшей производительности
+                    var cfUpdateInterval = 100; // Увеличено до 100ms - меньше операций с DOM
                     if (!this.lastCfUpdate || ($timer - this.lastCfUpdate) > cfUpdateInterval) {
                         this.lastCfUpdate = $timer;
                         if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
@@ -605,34 +585,17 @@ class Game {
                     } 
                     this.autocheck(); 
                     
-                    // Обновляем список ставок реже для экономии ресурсов
-                    var betsUpdateInterval = 500; // Увеличено до 500ms
-                    if (!this.lastBetsUpdate || ($timer - this.lastBetsUpdate) > betsUpdateInterval) {
-                        this.lastBetsUpdate = $timer;
-                        var $total_wins = 0; 
-                        for( var $u of this.current_bets ){
-                            if( this.cur_cf >= $u.cf ){ 
-                                $u.win = true; 
-                                var $line = $('#current_bets_list ul li[data-uid="'+ $u.uid +'"]'); 
-                                if( !$line.hasClass('active') ){
-                                    $line.addClass('active'); 
-                                    $('.betx', $line).html( ( +$u.cf ).toFixed(2) ).addClass( +$u.cf > 6 ? 'high' : ( +$u.cf > 2 ? 'mid' : '' ) );
-                                    $('.win', $line).html( ( +$u.cf * +$u.amount ).toFixed(2) ); 
-                                }
-                                $total_wins += parseFloat( +$u.cf * +$u.amount ); 
-                            }
-                        }
-                    } else {
-                        // Просто считаем выигрыши без обновления DOM
-                        var $total_wins = 0;
-                        for( var $u of this.current_bets ){
-                            if( this.cur_cf >= $u.cf ){ 
-                                $total_wins += parseFloat( +$u.cf * +$u.amount ); 
-                            }
+                    // ОТКЛЮЧАЕМ обновление списка ставок во время полета для максимальной производительности
+                    // Список обновится в конце игры через clear_level()
+                    var $total_wins = 0;
+                    for( var $u of this.current_bets ){
+                        if( this.cur_cf >= $u.cf ){ 
+                            $u.win = true; 
+                            $total_wins += parseFloat( +$u.cf * +$u.amount ); 
                         }
                     } 
                     // Оптимизированное обновление кнопок - реже для экономии CPU
-                    var buttonUpdateInterval = 200; // Унифицировано для всех экранов
+                    var buttonUpdateInterval = 300; // Увеличено до 300ms
                     if (!this.lastButtonUpdate || ($timer - this.lastButtonUpdate) > buttonUpdateInterval) {
                         this.lastButtonUpdate = $timer;
                         $('#actions_wrapper .make_bet.warning').each(function(){ 
@@ -652,17 +615,8 @@ class Game {
                             }
                         });
                     }
-                    // Обновляем статистику реже для экономии ресурсов
-                    var statsUpdateInterval = 400; // Унифицировано
-                    if (!this.lastStatsUpdate || ($timer - this.lastStatsUpdate) > statsUpdateInterval) {
-                        this.lastStatsUpdate = $timer;
-                        $('#bets_wrapper .info_window [data-rel="bets"] .label').html( ( $total_wins * this.factor ).toFixed(2) ); 
-                        var $players = $('#current_bets_list ul li').length; 
-                        var $winners = $('#current_bets_list ul li.active').length ; 
-                        var $perc = $winners / ( $players / 100 )
-                        $('#bets_wrapper .info_window [data-rel="bets"] .cur').html( $winners*this.factor ); 
-                        $('#bets_wrapper .progresser').css('width', $perc+'%');
-                    }
+                    // ОТКЛЮЧАЕМ обновление статистики во время полета - обновится в конце
+                    // Это экономит много операций с DOM каждый кадр
                 }
                 break; 
             case "finish": 
@@ -999,19 +953,18 @@ class Game {
         $game.get_bets({ user:$user.uid, sort:'id', dir:'desc' });
     }
     bet_generic( $data ){
-        // Генерируем фейковые ставки чаще и больше в начале игры
-        var currentTime = Date.now();
-        var timeSinceLastGeneration = this.lastBetGeneration ? (currentTime - this.lastBetGeneration) : 0;
-        var shouldGenerate = false;
-        
-        // В начале игры (loading) генерируем чаще
-        if (this.status === "loading") {
-            shouldGenerate = !this.lastBetGeneration || timeSinceLastGeneration > 1000; // Каждую 1 секунду
-        } else {
-            shouldGenerate = !this.lastBetGeneration || timeSinceLastGeneration > 3000; // Каждые 3 секунды
+        // КРИТИЧНО: Генерируем фейковые ставки ТОЛЬКО во время loading
+        // Во время полета НЕ генерируем для максимальной производительности
+        if (this.status !== "loading") {
+            return; // Выходим сразу если не в состоянии loading
         }
         
-        if (shouldGenerate && this.current_bets.length < 40) { // Увеличил с 35 до 40 для большего количества игроков
+        var currentTime = Date.now();
+        var timeSinceLastGeneration = this.lastBetGeneration ? (currentTime - this.lastBetGeneration) : 0;
+        var shouldGenerate = !this.lastBetGeneration || timeSinceLastGeneration > 1000; // Каждую 1 секунду
+        
+        // Генерируем только если прошло достаточно времени и не слишком много ставок
+        if (shouldGenerate && this.current_bets.length < 40) {
             this.lastBetGeneration = currentTime;
             
             // Создаем массив фейковых пользователей если его нет
@@ -1586,25 +1539,27 @@ function createBackground() {
 }
 
 var lastRenderTime = 0;
-// Максимальный FPS для плавной анимации на всех устройствах
-var targetFPS = 60; // 60 FPS для плавности
+// Убираем ограничение FPS - используем естественный 60 FPS браузера
+var targetFPS = 60;
 var frameDelay = 1000 / targetFPS;
+var frameCount = 0; // Счетчик кадров для пропуска некритичных обновлений
 
 function render( currentTime ){
-    // Ограничиваем FPS для лучшей производительности
+    // Легкий throttling только если браузер не успевает
     if (currentTime - lastRenderTime < frameDelay) {
         requestAnimationFrame( render );
         return;
     }
     lastRenderTime = currentTime;
+    frameCount++;
     
-    // ВАЖНО: Полностью очищаем canvas каждый кадр
+    // КРИТИЧНО: Полностью очищаем canvas каждый кадр
     $ctx.clearRect(0, 0, SETTINGS.w, SETTINGS.h);
     
-    // Рисуем прозрачный фон (если нужен)
-    if($backgroundReady) {
-        $ctx.drawImage($backgroundCanvas, 0, 0);
-    }
+    // НЕ рисуем фон - экономим операцию drawImage
+    // if($backgroundReady) {
+    //     $ctx.drawImage($backgroundCanvas, 0, 0);
+    // }
     
     if( $game ){ $game.update({}); }
     if( $plane ){ 
