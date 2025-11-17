@@ -572,16 +572,22 @@ class Game {
                     // $('.make_bet h2').hide(); 
                     // $('.make_bet').addClass('danger').removeClass('warning').attr('data-id', 0); 
                 } 
-                else { 
+                else {
+                    var updateStart = performance.now();
                     this.cur_cf = 1 + 0.5 * ( Math.exp( ( $delta / 1000 )  / 5 ) - 1 );
                     
                     // Обновляем отображение коэффициента реже для лучшей производительности
                     var cfUpdateInterval = 100; // Увеличено до 100ms - меньше операций с DOM
                     if (!this.lastCfUpdate || ($timer - this.lastCfUpdate) > cfUpdateInterval) {
+                        var domStart = performance.now();
                         this.lastCfUpdate = $timer;
                         if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
                         if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
                         $('#process_level .current').html( this.cur_cf.toFixed(2)+"x");
+                        var domTime = performance.now() - domStart;
+                        if(domTime > 5) {
+                            console.warn('⚠️ Долгое обновление CF:', domTime.toFixed(2) + 'ms');
+                        }
                     } 
                     this.autocheck(); 
                     
@@ -597,8 +603,11 @@ class Game {
                     // Оптимизированное обновление кнопок - реже для экономии CPU
                     var buttonUpdateInterval = 300; // Увеличено до 300ms
                     if (!this.lastButtonUpdate || ($timer - this.lastButtonUpdate) > buttonUpdateInterval) {
+                        var buttonStart = performance.now();
                         this.lastButtonUpdate = $timer;
-                        $('#actions_wrapper .make_bet.warning').each(function(){ 
+                        var buttonCount = 0;
+                        $('#actions_wrapper .make_bet.warning').each(function(){
+                            buttonCount++; 
                             var $self=$(this); 
                             var $bet_id = parseInt( $self.attr('data-id') ); 
                             if( $bet_id ){
@@ -614,6 +623,14 @@ class Game {
                                 } 
                             }
                         });
+                        var buttonTime = performance.now() - buttonStart;
+                        if(buttonTime > 10) {
+                            console.warn('⚠️ Долгое обновление кнопок:', buttonTime.toFixed(2) + 'ms', 'Кнопок:', buttonCount);
+                        }
+                    }
+                    var updateTime = performance.now() - updateStart;
+                    if(updateTime > 10) {
+                        console.warn('⚠️ Долгое обновление игры:', updateTime.toFixed(2) + 'ms', 'CF:', this.cur_cf.toFixed(2));
                     }
                     // ОТКЛЮЧАЕМ обновление статистики во время полета - обновится в конце
                     // Это экономит много операций с DOM каждый кадр
@@ -1234,6 +1251,9 @@ class Game {
 
     // SOCKET FUNC
     loading_to_flying( $data ){ 
+        console.log('🛫 LOADING → FLYING', 'CF:', $data.cf, 'Delta:', $data.delta);
+        var stateChangeStart = performance.now();
+        
         // ВЫЧИТАЕМ СТАВКИ ИЗ БАЛАНСА СРАЗУ ПРИ НАЧАЛЕ ИГРЫ
         $('.make_bet').each(function(){
             var $self = $(this);  
@@ -1299,9 +1319,12 @@ class Game {
         $('.autoplay').attr('disabled','disabled');
         this.autostart();  
         if( SETTINGS.volume.active ){ SOUNDS.sounds.play('start'); }
+        
+        console.log('✅ LOADING → FLYING завершено за', (performance.now() - stateChangeStart).toFixed(2) + 'ms');
     }
     flying_to_finish( $data ){ 
- 
+        console.log('🛬 FLYING → FINISH', 'CF:', $data.cf, 'Delta:', $data.delta);
+        var stateChangeStart = performance.now();
         
         // ОБРАБАТЫВАЕМ ПРОИГРЫШИ
         // Проверяем, есть ли активные ставки, которые не были выведены
@@ -1390,10 +1413,14 @@ class Game {
         setTimeout( $game.balance, 1000 ); 
         if( SETTINGS.volume.active ){ SOUNDS.sounds.play('away'); } 
         this.get_bets({ user:$user.uid, sort:'id', dir:'desc' });
-        this.balance(); 
+        this.balance();
+        
+        console.log('✅ FLYING → FINISH завершено за', (performance.now() - stateChangeStart).toFixed(2) + 'ms');
     } 
     finish_to_loading( $data ){ 
-        console.log("Data to loading: ", $data);
+        console.log('🔄 FINISH → LOADING', 'CF:', $data.cf, 'Delta:', $data.delta);
+        var stateChangeStart = performance.now();
+        
         this.status = "loading"; 
         this.timer = new Date().getTime(); 
         SETTINGS.timers.loading = $data.delta; 
@@ -1440,6 +1467,8 @@ class Game {
         this.balance(); 
         this.get_bets({ user:$user.uid, sort:'id', dir:'desc' });
         this.get_history({});
+        
+        console.log('✅ FINISH → LOADING завершено за', (performance.now() - stateChangeStart).toFixed(2) + 'ms');
     }
     
     // Добавляем много фейковых ставок в начале игры
@@ -1544,14 +1573,28 @@ var targetFPS = 60;
 var frameDelay = 1000 / targetFPS;
 var frameCount = 0; // Счетчик кадров для пропуска некритичных обновлений
 
+// Мониторинг производительности
+var performanceStats = {
+    frameCount: 0,
+    lastLogTime: 0,
+    renderTimes: [],
+    slowFrames: 0,
+    fps: 0
+};
+
 function render( currentTime ){
+    var renderStartTime = performance.now();
+    
     // Легкий throttling только если браузер не успевает
     if (currentTime - lastRenderTime < frameDelay) {
         requestAnimationFrame( render );
         return;
     }
+    
+    var actualDelta = currentTime - lastRenderTime;
     lastRenderTime = currentTime;
     frameCount++;
+    performanceStats.frameCount++;
     
     // КРИТИЧНО: Полностью очищаем canvas каждый кадр
     $ctx.clearRect(0, 0, SETTINGS.w, SETTINGS.h);
@@ -1565,6 +1608,39 @@ function render( currentTime ){
     if( $plane ){ 
         $plane.update({});
     }
+    
+    // Измеряем время рендеринга
+    var renderTime = performance.now() - renderStartTime;
+    performanceStats.renderTimes.push(renderTime);
+    
+    // Если кадр медленный (>16.67ms для 60fps)
+    if(renderTime > 16.67) {
+        performanceStats.slowFrames++;
+        console.warn('⚠️ Медленный кадр:', renderTime.toFixed(2) + 'ms', 'FPS:', (1000/renderTime).toFixed(1));
+    }
+    
+    // Логируем статистику каждую секунду
+    if(currentTime - performanceStats.lastLogTime > 1000) {
+        var avgRenderTime = performanceStats.renderTimes.reduce((a,b) => a+b, 0) / performanceStats.renderTimes.length;
+        var maxRenderTime = Math.max(...performanceStats.renderTimes);
+        performanceStats.fps = performanceStats.frameCount;
+        
+        console.log('📊 ПРОИЗВОДИТЕЛЬНОСТЬ:');
+        console.log('  FPS:', performanceStats.fps);
+        console.log('  Среднее время кадра:', avgRenderTime.toFixed(2) + 'ms');
+        console.log('  Макс время кадра:', maxRenderTime.toFixed(2) + 'ms');
+        console.log('  Медленных кадров:', performanceStats.slowFrames);
+        console.log('  Статус игры:', $game ? $game.status : 'нет');
+        console.log('  Точек графика:', $plane && $plane.chart ? $plane.chart.points.length : 0);
+        console.log('  Текущих ставок:', $game ? $game.current_bets.length : 0);
+        
+        // Сброс статистики
+        performanceStats.frameCount = 0;
+        performanceStats.renderTimes = [];
+        performanceStats.slowFrames = 0;
+        performanceStats.lastLogTime = currentTime;
+    }
+    
     requestAnimationFrame( render );
 }
 
@@ -1666,7 +1742,11 @@ socket.on('message', ( msg ) => {
 
 // Initialize the game when DOM is ready
 $(document).ready(function() {
-    console.log("Game initialization started");
+    console.log("🎮 Game initialization started");
+    console.log("📊 Canvas size:", SETTINGS.w + 'x' + SETTINGS.h);
+    console.log("🔧 Scale:", SETTINGS.scale);
+    console.log("💻 Is Desktop:", SETTINGS.isDesktop);
+    console.log("🎯 Target FPS:", targetFPS);
     
     // Initialize balance display
     if(window.$user && $user.balance) {
@@ -1804,7 +1884,35 @@ $(document).ready(function() {
     
     // Splash screen removed - game starts immediately
     
-    console.log("Game initialization completed");
+    console.log("✅ Game initialization completed");
+    
+    // Добавляем глобальные функции для отладки
+    window.getPerformanceStats = function() {
+        return {
+            fps: performanceStats.fps,
+            currentStatus: $game ? $game.status : 'unknown',
+            chartPoints: $plane && $plane.chart ? $plane.chart.points.length : 0,
+            currentBets: $game ? $game.current_bets.length : 0,
+            coefficient: $game ? $game.cur_cf.toFixed(2) : '0.00',
+            canvasSize: SETTINGS.w + 'x' + SETTINGS.h,
+            scale: SETTINGS.scale
+        };
+    };
+    
+    window.enableDetailedLogging = function() {
+        window.detailedLogging = true;
+        console.log("✅ Подробное логирование включено");
+    };
+    
+    window.disableDetailedLogging = function() {
+        window.detailedLogging = false;
+        console.log("❌ Подробное логирование выключено");
+    };
+    
+    console.log("📌 Доступные команды в консоли:");
+    console.log("  getPerformanceStats() - показать статистику производительности");
+    console.log("  enableDetailedLogging() - включить подробное логирование");
+    console.log("  disableDetailedLogging() - выключить подробное логирование");
 });
 
 
