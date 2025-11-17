@@ -1,32 +1,47 @@
 /* 
  * Оптимизации производительности для больших экранов десктопа
  * Применяется для экранов шире 1024px
+ * ОБНОВЛЕНО: Максимальная оптимизация для плавного 60 FPS
  */
 
 @media screen and (min-width: 1024px) {
-    /* Отключаем GPU-интенсивные эффекты на десктопе */
-    
-    /* Упрощаем анимации */
-    * {
-        animation-duration: 0.3s !important; /* Ускоряем все анимации */
+    /* КРИТИЧНО: GPU ускорение для canvas */
+    #canvas {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+        background: transparent !important;
+        /* Принудительное GPU ускорение */
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        perspective: 1000px;
+        -webkit-perspective: 1000px;
     }
     
-    /* Отключаем box-shadow для элементов во время анимации */
+    /* Canvas контейнер */
+    #game_field {
+        width: 100% !important;
+        height: 100% !important;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Минимизируем анимации для производительности */
+    * {
+        animation-duration: 0.2s !important; /* Быстрые анимации */
+    }
+    
+    /* Убираем тени во время игры */
     .flying *,
     .loading *,
     .finished * {
         box-shadow: none !important;
+        text-shadow: none !important;
     }
     
-    /* Используем transform вместо left/top для лучшей производительности */
-    .plane,
-    .chart,
-    canvas {
-        will-change: transform;
-        transform: translateZ(0); /* GPU acceleration */
-    }
-    
-    /* Упрощаем backdrop-filter на больших экранах */
+    /* Отключаем дорогие фильтры */
     .modal,
     .overlay,
     [class*="backdrop"] {
@@ -34,54 +49,52 @@
         -webkit-backdrop-filter: none !important;
     }
     
-    /* Отключаем blur эффекты */
     [class*="blur"] {
         filter: none !important;
     }
     
-    /* Canvas занимает весь доступный размер без черных краев */
-    #game_field {
-        width: 100% !important;
-        height: 100% !important;
-    }
-    
-    #canvas {
-        width: 100% !important;
-        height: 100% !important;
-        display: block;
-        background: transparent !important; /* Прозрачный фон для видимости интерфейса */
-    }
-    
-    /* Оптимизация для списка ставок */
+    /* CSS containment для изоляции рендеринга */
     #current_bets_list ul,
     #previous_bets_list ul {
-        contain: layout style; /* CSS containment для изоляции */
+        contain: layout style paint;
+        will-change: contents;
     }
     
-    /* Уменьшаем количество перерисовок */
+    /* Оптимизация элементов UI */
     .make_bet,
     .actions_field,
-    [data-rel="balance"] {
+    [data-rel="balance"],
+    #process_level .current {
         contain: layout style paint;
+        will-change: contents;
+    }
+    
+    /* Отключаем transitions для часто обновляемых элементов */
+    #process_level .current,
+    [data-rel="balance"],
+    .make_bet h2 [data-rel="current_bet"] {
+        transition: none !important;
     }
 }
 
-/* Для очень больших экранов (>1920px) - еще более агрессивная оптимизация */
+/* Для очень больших экранов (>1920px) - максимальная производительность */
 @media screen and (min-width: 1920px) {
-    /* Отключаем все анимации */
-    * {
+    /* Минимум анимаций */
+    *:not(#canvas):not(.plane):not(.chart) {
         animation: none !important;
         transition: none !important;
     }
     
-    /* Canvas все равно занимает весь экран, но без лишних эффектов */
-    #game_field {
-        width: 100% !important;
-        height: 100% !important;
+    /* Убираем декоративные эффекты */
+    .pulse-ring,
+    [class*="glow"],
+    [class*="shine"] {
+        display: none !important;
     }
     
-    /* Упрощаем отображение */
-    .pulse-ring {
-        display: none !important; /* Убираем pulse эффекты */
+    /* Canvas на весь экран с максимальной оптимизацией */
+    #canvas {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
     }
 }

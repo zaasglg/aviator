@@ -1,10 +1,9 @@
 var SETTINGS = {
-    // Canvas занимает весь экран, но разрешение рендеринга оптимизировано
+    // Canvas занимает весь экран в полном разрешении для плавной анимации
     w: document.querySelector('#game_field').offsetWidth,
     h: document.querySelector('#game_field').offsetHeight,
-    // Для больших экранов используем масштабирование для оптимизации
-    // Реальное разрешение рендеринга будет ниже, но растянуто на весь экран
-    scale: window.innerWidth > 1920 ? 0.75 : (window.innerWidth > 1024 ? 0.85 : 1.0),
+    // ОТКЛЮЧЕНО масштабирование - рендерим в полном разрешении для лучшего качества
+    scale: 1.0,
     start: {
         x: 20, 
         y: 400  // Fixed position instead of dynamic calculation
@@ -161,9 +160,9 @@ class Chart {
         this.sy = obj.sy;       // start.y
         this.fx = obj.fx;       // finish.x
         this.fy = obj.fy;       // finish.y
-        this.fill = obj.fill ? obj.fill : 'rgba(255, 0, 0, 0.05)'; // Уменьшили прозрачность заливки
+        this.fill = obj.fill ? obj.fill : 'rgba(255, 0, 0, 0.03)'; // Минимальная заливка для производительности
         this.stroke = obj.stroke ? obj.stroke : "#ff1744"; // Яркий красный для линии
-        this.w = obj.w ? obj.w : 3; // Тоньше линия (было 5)
+        this.w = obj.w ? obj.w : 2; // Тонкая линия для производительности
         this.line = obj.line ? obj.line : 1;
         this.points = []; // Массив точек для плавной линии
         this.isFlying = false; // Флаг - рисовать график только во время полета
@@ -239,10 +238,10 @@ class Plane {
             images: $plane_image,
             width: this.w,
             height: this.h, 
-            speed: SETTINGS.isDesktop ? 350 : 250  // На десктопе еще медленнее для оптимизации
+            speed: 200  // Оптимальная скорость для всех экранов при 60 FPS
         });  
         this.chart = obj.chart; 
-        this.vel = 3.0;  // Увеличено до 3.0 для компенсации 30 FPS
+        this.vel = 2.0;  // Оптимальная скорость для 60 FPS
         this.status = "idle"; 
         this.route = [
             { x:SETTINGS.w-( SETTINGS.w*0.20 ), y:SETTINGS.h*0.5 }, 
@@ -258,10 +257,9 @@ class Plane {
     move( $dir, $speed ){ 
         var $vector = { x: ( $dir.x - this.x ), y: ( $dir.y - this.y ), z: 0 }
         let V = HELPERS.normalize( $vector );
-        // На десктопе используем еще большую скорость для компенсации низкого FPS
-        var speedMultiplier = SETTINGS.isDesktop ? 1.2 : 1.0;
-        this.x += V.x * $speed * speedMultiplier; 
-        this.y += V.y * $speed * speedMultiplier; 
+        // Единая скорость для всех экранов при 60 FPS
+        this.x += V.x * $speed; 
+        this.y += V.y * $speed; 
     }
     update( obj ){ 
         if( this.status == "move" ){
@@ -597,8 +595,8 @@ class Game {
                 else { 
                     this.cur_cf = 1 + 0.5 * ( Math.exp( ( $delta / 1000 )  / 5 ) - 1 );
                     
-                    // Обновляем отображение коэффициента - адаптивно для десктопа (реже)
-                    var cfUpdateInterval = SETTINGS.isDesktop ? 150 : 100;
+                    // Обновляем отображение коэффициента чаще для плавности
+                    var cfUpdateInterval = 50; // Каждые 50ms для плавного отображения
                     if (!this.lastCfUpdate || ($timer - this.lastCfUpdate) > cfUpdateInterval) {
                         this.lastCfUpdate = $timer;
                         if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
@@ -607,8 +605,8 @@ class Game {
                     } 
                     this.autocheck(); 
                     
-                    // Обновляем список ставок - адаптивно для десктопа (реже)
-                    var betsUpdateInterval = SETTINGS.isDesktop ? 400 : 300;
+                    // Обновляем список ставок реже для экономии ресурсов
+                    var betsUpdateInterval = 500; // Увеличено до 500ms
                     if (!this.lastBetsUpdate || ($timer - this.lastBetsUpdate) > betsUpdateInterval) {
                         this.lastBetsUpdate = $timer;
                         var $total_wins = 0; 
@@ -633,8 +631,8 @@ class Game {
                             }
                         }
                     } 
-                    // Оптимизированное обновление кнопок - адаптивно для десктопа
-                    var buttonUpdateInterval = SETTINGS.isDesktop ? 300 : 200;
+                    // Оптимизированное обновление кнопок - реже для экономии CPU
+                    var buttonUpdateInterval = 200; // Унифицировано для всех экранов
                     if (!this.lastButtonUpdate || ($timer - this.lastButtonUpdate) > buttonUpdateInterval) {
                         this.lastButtonUpdate = $timer;
                         $('#actions_wrapper .make_bet.warning').each(function(){ 
@@ -654,8 +652,8 @@ class Game {
                             }
                         });
                     }
-                    // Обновляем статистику - адаптивно для десктопа (еще реже)
-                    var statsUpdateInterval = SETTINGS.isDesktop ? 500 : 400;
+                    // Обновляем статистику реже для экономии ресурсов
+                    var statsUpdateInterval = 400; // Унифицировано
                     if (!this.lastStatsUpdate || ($timer - this.lastStatsUpdate) > statsUpdateInterval) {
                         this.lastStatsUpdate = $timer;
                         $('#bets_wrapper .info_window [data-rel="bets"] .label').html( ( $total_wins * this.factor ).toFixed(2) ); 
@@ -1588,8 +1586,8 @@ function createBackground() {
 }
 
 var lastRenderTime = 0;
-// Адаптивный FPS: на десктопе 25 FPS (лучше для больших экранов), на мобильных 30 FPS
-var targetFPS = SETTINGS.isDesktop ? 25 : 30;
+// Максимальный FPS для плавной анимации на всех устройствах
+var targetFPS = 60; // 60 FPS для плавности
 var frameDelay = 1000 / targetFPS;
 
 function render( currentTime ){
