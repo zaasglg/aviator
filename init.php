@@ -54,7 +54,7 @@
 		'Ecuador' => 'USD', 'El Salvador' => 'USD', 'Guatemala' => 'Q', 'Haiti' => 'HTG',
 		'Honduras' => 'HNL', 'Mexico' => 'MXN', 'Nicaragua' => 'NIO', 'Panama' => 'USD',
 		'Paraguay' => 'PYG', 'Peru' => 'PEN', 'Puerto Rico' => 'USD', 'Uruguay' => 'UYU',
-		'Venezuela' => 'VES',
+		'Venezuela' => 'VES', 'Kenya' => 'KES', 'Nigeria' => 'NGN', 'Zimbabwe' => 'ZWL',
 	];
 	
 	$exchange_rates = [
