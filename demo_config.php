@@ -108,6 +108,30 @@ $demo_configs = [
         'max_bet' => 100000,
         'default_bet' => 2000
     ],
+    'Kenya' => [
+        'currency' => 'KES',
+        'balance' => 10000,
+        'quick_bets' => [150, 300, 1000, 5000],
+        'min_bet' => 500,
+        'max_bet' => 10000,
+        'default_bet' => 150
+    ],
+    'Nigeria' => [
+        'currency' => 'NGN',
+        'balance' => 150000,
+        'quick_bets' => [1500, 3000, 10000, 20000],
+        'min_bet' => 1500,
+        'max_bet' => 50000,
+        'default_bet' => 1500
+    ],
+    'Zimbabwe' => [
+        'currency' => 'ZWL',
+        'balance' => 5000,
+        'quick_bets' => [500, 1000, 5000, 10000],
+        'min_bet' => 500,
+        'max_bet' => 100000,
+        'default_bet' => 500
+    ],
     'default' => [
         'currency' => 'USD',
         'balance' => 500,
