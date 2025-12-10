@@ -184,6 +184,32 @@
 	
 	error_log("Final CURRENCY: " . CURRENCY . ", USER_RATE: " . USER_RATE);
 	
+	// Определяем язык на основе страны пользователя
+	$user_language = 'en'; // По умолчанию английский
+	$user_country = null;
+	
+	// Получаем страну из разных источников (приоритет: user_country > demo_country)
+	if (isset($_SESSION['user_country'])) {
+		$user_country = $_SESSION['user_country'];
+	} elseif (isset($_SESSION['demo_country'])) {
+		$user_country = $_SESSION['demo_country'];
+	}
+	
+	if ($user_country === 'Colombia') {
+		$user_language = 'es'; // Испанский для Colombia
+		error_log("Language set to Spanish (es) for country: " . $user_country);
+	} else {
+		$user_language = 'en'; // Английский для остальных стран
+		if ($user_country) {
+			error_log("Language set to English (en) for country: " . $user_country);
+		} else {
+			error_log("Language set to English (en) - no country specified");
+		}
+	}
+	
+	define('USER_LANGUAGE', $user_language);
+	$_SESSION['USER_LANGUAGE'] = $user_language;
+	
 	//
 	//
 	if( isset( $_SESSION['ADMIN'] ) ){ define('ADMIN', $_SESSION['ADMIN'] ); } 

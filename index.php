@@ -11,7 +11,18 @@
 	include_once BASE_DIR ."init.php"; 
 	//include_once BASE_DIR ."common.php"; 
 	include_once BASE_DIR ."router.php"; 
-	include_once BASE_DIR ."localization.php";
+	
+	// Подключаем файл локализации в зависимости от языка пользователя
+	// Colombia -> испанский (localization.php), остальные страны -> английский (localization_en.php)
+	$user_lang = 'en'; // По умолчанию английский
+	if (defined('USER_LANGUAGE')) {
+		$user_lang = USER_LANGUAGE;
+	} elseif (isset($_SESSION['USER_LANGUAGE'])) {
+		$user_lang = $_SESSION['USER_LANGUAGE'];
+	}
+	
+	$lang_file = ($user_lang === 'es') ? 'localization.php' : 'localization_en.php';
+	include_once BASE_DIR . $lang_file;
 	
 	if( ISAPI ){ 
 		include_once BASE_DIR ."api.php";
