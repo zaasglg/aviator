@@ -1,4 +1,6 @@
 // Database connection removed
+console.log('🔥 THIS core.js FILE IS RUNNING 🔥');
+
 const axios = require('axios').default; 
 
 const express = require('express');
