@@ -62,7 +62,7 @@
 		'COP' => 4000, 'CRC' => 520, 'CUP' => 24, 'DOP' => 56,
 		'USD' => 1, 'Q' => 7.8, 'HTG' => 132, 'HNL' => 24.5,
 		'MXN' => 17, 'NIO' => 36.5, 'PYG' => 7200, 'PEN' => 3.7,
-		'UYU' => 39, 'VES' => 36
+		'UYU' => 39, 'VES' => 36, 'KES' => 153, 'NGN' => 1550, 'ZWL' => 14000
 	];
 	
 	//
@@ -168,12 +168,25 @@
 		$user_rate = $exchange_rates[$user_currency] ?? 1;
 		error_log("Demo mode currency: " . $user_currency . " for country: " . $country);
 	}
-	// Если есть авторизованный пользователь, пытаемся получить его страну
+	// Если есть авторизованный пользователь с указанной страной
+	elseif (AUTH && isset($country)) {
+		$_SESSION['user_country'] = $country;
+		$user_currency = $currency_map[$country] ?? 'USD';
+		$user_rate = $exchange_rates[$user_currency] ?? 1;
+		error_log("Real mode currency: " . $user_currency . " for country: " . $country);
+	}
+	// Если есть авторизованный пользователь, страна сохранена в сессии
+	elseif (AUTH && isset($_SESSION['user_country'])) {
+		$country = $_SESSION['user_country'];
+		$user_currency = $currency_map[$country] ?? 'USD';
+		$user_rate = $exchange_rates[$user_currency] ?? 1;
+		error_log("Real mode currency from session: " . $user_currency . " for country: " . $country);
+	}
+	// Если есть авторизованный пользователь без страны - USD по умолчанию
 	elseif (AUTH) {
-		// Здесь можно добавить запрос к БД для получения страны пользователя
-		// Пока используем USD по умолчанию
 		$user_currency = "USD";
 		$user_rate = 1;
+		error_log("Real mode: no country specified, using USD");
 	}
 	
 	define('CURRENCY', $user_currency);
