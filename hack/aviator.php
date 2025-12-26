@@ -24,6 +24,7 @@ if (!isset($_SESSION['user_id'])) {
     <link rel="stylesheet" href="./css/main-aviator.css">
     <link rel="stylesheet" href="./css/aviator.css">
     <link rel="stylesheet" href="./css/aviator-modern.css">
+    <link rel="stylesheet" href="./css/aviator-training.css">
     
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
@@ -34,7 +35,7 @@ if (!isset($_SESSION['user_id'])) {
 <div class="wrapper" id="error_block" style="display: none">
       <div class="container">
         <div class="box finish">
-          <a href="#" class="logo"><img src="./imgs/aviator_logo.png" alt /></a>
+          <a href="#" class="logo"><img src="./images/aviator-logo.png" alt /></a>
           
 
           <div class="deposit">
@@ -70,12 +71,12 @@ if (!isset($_SESSION['user_id'])) {
     <div class="wrapper" id="game_block">
       <div class="container">
         <div class="box">
-          <div class="cloudTop">
+          <!-- <div class="cloudTop">
             <img width="100%" height="300px" src="./imgs/cloudTop.png" alt />
           </div>
           <div class="cloudMiddleTop">
             <img width="426px" src="./imgs/cloudMiddleTop.png" alt />
-          </div>
+          </div> -->
           <!-- Модальное окно -->
           <div id="coefficientModal" class="modal">
             <div class="modal-content">
@@ -87,14 +88,22 @@ if (!isset($_SESSION['user_id'])) {
             </div>
           </div>
 
-          <div class="cloudMiddleBottom">
+          <!-- <div class="cloudMiddleBottom">
             <img width="130px" src="./imgs/cloudMiddleBottom.png" alt />
           </div>
           <div class="cloudBottom">
             <img width="150px" src="./imgs/cloudBottom.png" alt />
-          </div>
+          </div> -->
 
-          <a href="#" class="logo"><img src="./imgs/aviator_logo.png" alt /></a>
+          <a href="#" class="logo"><img src="./images/aviator-logo.png" alt /></a>
+
+          <div class="training-container">
+            <h3 class="training-title">Training Completed</h3>
+            <div class="training-bar">
+              <div class="training-fill"></div>
+              <span class="training-percent">100%</span>
+            </div>
+          </div>
 
       <div class="overlaying" style="display: none;">
         <p>
@@ -107,19 +116,28 @@ if (!isset($_SESSION['user_id'])) {
         </button>
       </div>
           <div class="circle--wrapper">
-            <div class="circle">
-              <div class="first_step">
+            <div class="circle aviator-ui">
+              <!-- Decorative Elements -->
+              <div class="ui-decor">
+                <div class="ui-ring"></div>
+                <div class="ui-brackets">
+                  <div class="bracket tr"></div>
+                  <div class="bracket bl"></div>
+                </div>
+              </div>
+
+              <!-- Main Content -->
+              <div class="first_step loading">
                 <div class="coefficient-display">
                   <span class="rand_number">-</span>
-                  <span class="multiplier">X</span>
+                  <span class="multiplier">x</span>
                 </div>
-                <div class="pulse-ring"></div>
-                <div class="pulse-ring delay-1"></div>
-                <div class="pulse-ring delay-2"></div>
               </div>
+
+              <!-- Loading State -->
               <div class="animating_vint">
                 <div class="info">
-                  <div class="collecting_info">Recopilando información...</div>
+                  <div class="collecting_info">Recopilando<br>información...</div>
                   <div class="yellow_dots">
                     <span></span>
                     <span></span>
@@ -130,11 +148,8 @@ if (!isset($_SESSION['user_id'])) {
             </div>
           </div>
           
-          <div class="game-status">
-            <div class="status-indicator">
-              <span class="status-dot"></span>
-              <span class="status-text">Conectando...</span>
-            </div>
+          <div class="support-container">
+            <a href="https://t.me/Haruna_Bello_HackBot" class="aviator-support-btn">SUPPORT</a>
           </div>
 
           <div class="deposit">

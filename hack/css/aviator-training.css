@@ -1,0 +1,62 @@
+/* Training Status Block */
+.training-container {
+    text-align: center;
+    margin: 0 auto 30px;
+    /* Centered with bottom margin */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 10;
+}
+
+.training-title {
+    color: #fff;
+    font-size: 18px;
+    /* increased from 12px */
+    font-weight: 700;
+    margin-bottom: 12px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    font-family: 'Archivo', sans-serif;
+    letter-spacing: 1px;
+}
+
+.training-bar {
+    width: 240px;
+    /* increased from 160px */
+    height: 28px;
+    /* increased from 18px */
+    border: 2px solid #D32F2F;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.6);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(211, 47, 47, 0.4);
+}
+
+.training-fill {
+    width: 100%;
+    height: 100%;
+    background: #E53935;
+    background-image: repeating-linear-gradient(90deg,
+            #E53935,
+            #E53935 10px,
+            #B71C1C 10px,
+            #B71C1C 12px);
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2);
+}
+
+.training-percent {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    font-weight: 800;
+    font-size: 14px;
+    /* increased from 10px */
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+    z-index: 2;
+    font-family: 'Archivo', sans-serif;
+}
