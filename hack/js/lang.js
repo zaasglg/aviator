@@ -40,7 +40,7 @@ const translations = {
 };
 
 function updateLanguage() {
-  const language = localStorage.getItem("language") || "es";
+  const language = localStorage.getItem("language") || "eng";
 
   // Обновляем только текст, не весь HTML
   document.querySelectorAll(".translate").forEach((element) => {

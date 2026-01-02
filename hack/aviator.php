@@ -40,7 +40,7 @@ if (!isset($_SESSION['user_id'])) {
 
           <div class="deposit">
             <div class="dep_item">
-              <div class="dep_title">MİNİMUM DEPOZİTO</div>
+              <div class="dep_title">MINIMUM DEPOSIT</div>
               <div class="dep_val">
                 <input
                   type="text"
@@ -51,14 +51,14 @@ if (!isset($_SESSION['user_id'])) {
               </div>
             </div>
             <div class="dep_text">
-              Ödeme yapıldıktan sonra Aviator botu otomatik olarak çalışacaktır
+              After payment, the Aviator bot will start automatically
             </div>
             <div class="dep_bottom">
               <a href="https://t.me/ayberk_erturk" class="help_a"
-                >Yardıma ihtiyaç olursa?</a
+                >Need help?</a
               >
               <a href="https://t.me/ayberk_erturk" class="support_btn"
-                >Desteğe yazın</a
+                >Contact support</a
               >
             </div>
           </div>
@@ -81,10 +81,10 @@ if (!isset($_SESSION['user_id'])) {
           <div id="coefficientModal" class="modal">
             <div class="modal-content">
               <span class="close">&times;</span>
-              <h2>Редактирование коэффициентов</h2>
+              <h2>Edit Coefficients</h2>
               <div id="coefficientList"></div>
-              <button id="addCoefficientBtn">Добавить коэффициент</button>
-              <button id="saveCoefficientsBtn">Сохранить коэффициенты</button>
+              <button id="addCoefficientBtn">Add Coefficient</button>
+              <button id="saveCoefficientsBtn">Save Coefficients</button>
             </div>
           </div>
 
@@ -95,7 +95,7 @@ if (!isset($_SESSION['user_id'])) {
             <img width="150px" src="./imgs/cloudBottom.png" alt />
           </div> -->
 
-          <a href="#" class="logo"><img src="./images/aviator-logo.png" alt /></a>
+          <a href="#" class="logo"><img src="./images/aviator-logo.png" alt style="width: 400px;"/></a>
 
           <div class="training-container">
             <h3 class="training-title">Training Completed</h3>
@@ -107,12 +107,12 @@ if (!isset($_SESSION['user_id'])) {
 
       <div class="overlaying" style="display: none;">
         <p>
-          <span class="translate" data-key="overlay_text_p" id="overlay-text-p">Para activar la versión funcional es
-            necesario realizar un depósito, por favor escribe a Fabio</span>
+          <span class="translate" data-key="overlay_text_p" id="overlay-text-p">To activate the functional version,
+            you need to make a deposit, please contact Fabio</span>
         </p>
         <button class="btn__overlaying translate" type="button" data-key="make_deposit"
           data-url="https://t.me/Dominguez_Fabio_Bot">
-          Escríbeme
+          Contact me
         </button>
       </div>
           <div class="circle--wrapper">
@@ -120,10 +120,6 @@ if (!isset($_SESSION['user_id'])) {
               <!-- Decorative Elements -->
               <div class="ui-decor">
                 <div class="ui-ring"></div>
-                <div class="ui-brackets">
-                  <div class="bracket tr"></div>
-                  <div class="bracket bl"></div>
-                </div>
               </div>
 
               <!-- Main Content -->
@@ -137,7 +133,7 @@ if (!isset($_SESSION['user_id'])) {
               <!-- Loading State -->
               <div class="animating_vint">
                 <div class="info">
-                  <div class="collecting_info">Recopilando<br>información...</div>
+                  <div class="collecting_info">Collecting<br>information...</div>
                   <div class="yellow_dots">
                     <span></span>
                     <span></span>
@@ -148,33 +144,15 @@ if (!isset($_SESSION['user_id'])) {
             </div>
           </div>
           
-          <div class="support-container">
-            <a href="https://t.me/Haruna_Bello_HackBot" class="aviator-support-btn">SUPPORT</a>
+          <!-- Start Button and Auto Toggle -->
+          <div class="start-controls">
+            <button class="start-btn" id="startBtn">
+              <span>START</span>
+            </button>
           </div>
-
-          <div class="deposit">
-            <div class="dep_item">
-              <div class="dep_title">MİNİMUM DEPOZİTO</div>
-              <div class="dep_val">
-                <input
-                  type="text"
-                  value="200TL+ "
-                  readonly
-                  style="width: 100%"
-                />
-              </div>
-            </div>
-            <div class="dep_text">
-              Ödeme yapıldıktan sonra Aviator botu otomatik olarak çalışacaktır
-            </div>
-            <div class="dep_bottom">
-              <a href="https://t.me/ayberk_erturk" class="help_a"
-                >Yardıma ihtiyaç olursa?</a
-              >
-              <a href="https://t.me/ayberk_erturk" class="support_btn"
-                >Desteğe yazın</a
-              >
-            </div>
+          
+          <div class="support-container">
+            <a href="https://t.me/SamuelBrownnbot" class="aviator-support-btn">SUPPORT</a>
           </div>
         </div>
       </div>
@@ -247,7 +225,7 @@ async function checkUserDeposit() {
         });
     </script>
 
-    <script src="./js/aviator.js?v=22"></script>
+    <script src="./js/aviator.js?v=23"></script>
     <script src="./js/lang.js"></script>
 </body>
 </html>

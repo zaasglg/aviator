@@ -29,7 +29,7 @@ window.addEventListener("DOMContentLoaded", function () {
     if (statusText) statusText.textContent = 'Conectado';
     
     if (collectingInfo) {
-      collectingInfo.textContent = 'Conexión establecida';
+      collectingInfo.textContent = 'Connection established';
     }
     
     // Запрашиваем текущее состояние игры
@@ -144,7 +144,7 @@ window.addEventListener("DOMContentLoaded", function () {
     // Новый коэффициент придет в FLYING и обновится автоматически
     
     if (collectingInfo) {
-      collectingInfo.textContent = 'Recopilando información...';
+      collectingInfo.textContent = 'Collecting information...';
     }
     
     document.querySelector('.first_step')?.classList.remove('flying', 'finished');

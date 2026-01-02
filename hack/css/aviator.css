@@ -19,6 +19,8 @@ body {
 	box-sizing: border-box;
 	background-color: #000;
 	background-image: linear-gradient(315deg, #16191d 0%, #252a2e 100%);
+	overflow-x: hidden;
+	max-width: 100%;
 }
 
 .aviator-container {
@@ -28,6 +30,7 @@ body {
 	margin: 0 auto;
 	position: relative;
 	overflow: hidden;
+	overflow-x: hidden;
 	background-image: url("..//assets/aviator-bg-3.png");
 	background-repeat: no-repeat;
 	background-size: cover;
