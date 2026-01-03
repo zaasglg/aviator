@@ -14,13 +14,13 @@
 <body style="background: #000;">
 
     <div class="main__wrapper">
-        <img class="money__top--left" src="./images/money_top_left.webp" alt="money">
-        <img class="money__top--right" src="./images/money_top_right.webp" alt="money">
-        <img class="money__left--center" src="./images/money_left_center.webp" alt="money">
-        <img class="money__right--center" src="./images/money_right_center.webp" alt="money">
-        <div class="main">
-            <h1 class="translate" data-key="welcome">Welcome!</h1>   
 
+
+        <div class="main">
+        <a href="#" class="logo" style=" display: flex; justify-content: center; height: 180px;"><img src="./images/aviator-logo.png" alt /></a>  
+
+        <br>
+        <br>
             <form id="loginForm" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
                 <input class="translate-placeholder" data-key="input_id" style="margin-bottom: 10px;" type="text" name="account_id" id="account_id" placeholder="Input your account ID" required>
                 <button style="background: #FFD900" class="btn translate" type="submit" data-key="sign_in">Sign in</button>
