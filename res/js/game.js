@@ -128,27 +128,28 @@ var HELPERS = new Helpers({});
 
 class Sprite {
     constructor(obj) {
-        this.timer = new Date().getTime();
+        this.timer = performance.now(); // Используем performance.now() для точности
         this.current = 0;
         this.ctx = obj.ctx;
         this.images = obj.images;
         this.width = obj.width;
         this.height = obj.height;
         this.speed = obj.speed;
+        this._currentImage = this.images[0]; // Кэшируем текущее изображение
     }
     update(obj) {
-        var $timer = new Date().getTime();
+        var $timer = performance.now();
         var $delta = $timer - this.timer;
         if ($delta >= this.speed) {
-            this.current += 1;
-            if (this.current == this.images.length) { this.current = 0; }
+            this.current = (this.current + 1) % this.images.length; // Оптимизированный цикл
+            this._currentImage = this.images[this.current]; // Обновляем кэш
             this.timer = $timer;
         }
         this.draw(obj);
     }
     draw(obj) {
         this.ctx.drawImage(
-            this.images[this.current],
+            this._currentImage, // Используем кэшированное изображение
             obj.x,
             obj.y,
             this.width,
@@ -178,12 +179,16 @@ class Chart {
         this.fx = obj.x;
         this.fy = obj.y;
 
-        // Добавляем точку в массив для создания плавной траектории
-        this.points.push({ x: this.fx, y: this.fy });
+        // Добавляем точку каждые N кадров для экономии памяти
+        if (!this._frameSkip) this._frameSkip = 0;
+        this._frameSkip++;
+        if (this._frameSkip >= 3) { // Добавляем точку каждые 3 кадра
+            this._frameSkip = 0;
+            this.points.push({ x: this.fx, y: this.fy });
+        }
 
         // КРИТИЧНО: Ограничиваем количество точек для производительности
-        // На больших экранах (>=1920px, 32 дюйма) используем меньше точек
-        var maxPoints = window.innerWidth >= 1920 ? 75 : 100;
+        var maxPoints = 50; // Уменьшено с 75-100 до 50
         if (this.points.length > maxPoints) {
             this.points.shift();
         }
@@ -193,28 +198,32 @@ class Chart {
     draw() {
         if (this.points.length < 2) return;
 
-        // ОТКЛЮЧЕНА заливка для максимальной производительности
-        // Рисуем только линию траектории полета
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.sx, this.sy);
+        var ctx = this.ctx;
 
-        for (let i = 0; i < this.points.length; i++) {
-            this.ctx.lineTo(this.points[i].x, this.points[i].y);
+        // Устанавливаем стили один раз
+        ctx.strokeStyle = this.stroke;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        // Рисуем основную траекторию
+        ctx.beginPath();
+        ctx.moveTo(this.sx, this.sy);
+
+        var points = this.points;
+        var len = points.length;
+        for (var i = 0; i < len; i++) {
+            ctx.lineTo(points[i].x, points[i].y);
         }
 
-        this.ctx.strokeStyle = this.stroke;
-        this.ctx.lineWidth = this.w;
-        this.ctx.lineJoin = 'round';
-        this.ctx.lineCap = 'round';
-        this.ctx.stroke();
+        ctx.lineWidth = this.w;
+        ctx.stroke();
 
-        // Базовая линия (тонкая)
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.sx, this.sy);
-        this.ctx.lineTo(this.fx, this.sy);
-        this.ctx.strokeStyle = this.stroke;
-        this.ctx.lineWidth = this.line;
-        this.ctx.stroke();
+        // Базовая линия (тонкая) - объединяем с основным путем
+        ctx.beginPath();
+        ctx.moveTo(this.sx, this.sy);
+        ctx.lineTo(this.fx, this.sy);
+        ctx.lineWidth = this.line;
+        ctx.stroke();
     }
 }
 
@@ -580,21 +589,20 @@ class Game {
                     // $('.make_bet').addClass('danger').removeClass('warning').attr('data-id', 0); 
                 }
                 else {
-                    var updateStart = performance.now();
                     this.cur_cf = 1 + 0.5 * (Math.exp(($delta / 1000) / 5) - 1);
 
-                    // Обновляем отображение коэффициента реже для лучшей производительности
-                    // На больших экранах (>=1920px, 32 дюйма) обновляем реже
-                    var cfUpdateInterval = window.innerWidth >= 1920 ? 150 : 100;
+                    // Обновляем отображение коэффициента реже для производительности
+                    var cfUpdateInterval = 200; // Увеличен интервал до 200ms
                     if (!this.lastCfUpdate || ($timer - this.lastCfUpdate) > cfUpdateInterval) {
-                        var domStart = performance.now();
                         this.lastCfUpdate = $timer;
-                        if (this.cur_cf >= 2) { $('#process_level .current').attr('data-amount', 2); }
-                        if (this.cur_cf >= 4) { $('#process_level .current').attr('data-amount', 3); }
-                        $('#process_level .current').html(this.cur_cf.toFixed(2) + "x");
-                        var domTime = performance.now() - domStart;
-                        if (domTime > 5) {
-                            console.warn('⚠️ Долгое обновление CF:', domTime.toFixed(2) + 'ms');
+                        // Используем кэшированный элемент
+                        if (!this._cfElement) {
+                            this._cfElement = document.querySelector('#process_level .current');
+                        }
+                        if (this._cfElement) {
+                            if (this.cur_cf >= 2) this._cfElement.setAttribute('data-amount', 2);
+                            if (this.cur_cf >= 4) this._cfElement.setAttribute('data-amount', 3);
+                            this._cfElement.textContent = this.cur_cf.toFixed(2) + "x";
                         }
                     }
                     this.autocheck();
@@ -608,38 +616,35 @@ class Game {
                             $total_wins += parseFloat(+$u.cf * +$u.amount);
                         }
                     }
-                    // Оптимизированное обновление кнопок - реже для экономии CPU
-                    // На больших экранах (>=1920px) обновляем реже
-                    var buttonUpdateInterval = window.innerWidth >= 1920 ? 400 : 300;
+                    // Оптимизированное обновление кнопок - увеличен интервал
+                    var buttonUpdateInterval = 500; // Увеличен до 500ms
                     if (!this.lastButtonUpdate || ($timer - this.lastButtonUpdate) > buttonUpdateInterval) {
-                        var buttonStart = performance.now();
                         this.lastButtonUpdate = $timer;
-                        var buttonCount = 0;
-                        $('#actions_wrapper .make_bet.warning').each(function () {
-                            buttonCount++;
-                            var $self = $(this);
-                            var $bet_id = parseInt($self.attr('data-id'));
+                        // Используем кэшированные кнопки
+                        if (!this._warningButtons) {
+                            this._warningButtons = document.querySelectorAll('#actions_wrapper .make_bet.warning');
+                        }
+                        this._warningButtons.forEach(function (btn) {
+                            var $bet_id = parseInt(btn.getAttribute('data-id'));
                             if ($bet_id) {
-                                var $src = parseInt($self.attr('data-src'));
-                                var $wrap = $self.parent().parent().parent().parent();
-                                var $bet = parseFloat($('input[type="text"]', $wrap).val());
-                                var $cf = parseFloat($game.cur_cf);
-                                var $result = ($bet * $cf).toFixed(2);
-                                var $cash_out = parseFloat($('[name="cashout_value"]', $wrap).val());
-                                $('h2 [data-rel="current_bet"]', $self).html($result);
-                                if ($('[name="cashout_switcher"]', $wrap).is(':checked')) {
-                                    if ($cash_out <= $cf) { $self.click(); }
+                                var $wrap = btn.closest('.actions_field');
+                                if ($wrap) {
+                                    var input = $wrap.querySelector('input[type="text"]');
+                                    var $bet = input ? parseFloat(input.value) : 0;
+                                    var $result = ($bet * $game.cur_cf).toFixed(2);
+                                    var betDisplay = btn.querySelector('h2 [data-rel="current_bet"]');
+                                    if (betDisplay) betDisplay.textContent = $result;
+
+                                    var cashoutSwitch = $wrap.querySelector('[name="cashout_switcher"]');
+                                    var cashoutVal = $wrap.querySelector('[name="cashout_value"]');
+                                    if (cashoutSwitch && cashoutSwitch.checked && cashoutVal) {
+                                        if (parseFloat(cashoutVal.value) <= $game.cur_cf) {
+                                            btn.click();
+                                        }
+                                    }
                                 }
                             }
                         });
-                        var buttonTime = performance.now() - buttonStart;
-                        if (buttonTime > 10) {
-                            console.warn('⚠️ Долгое обновление кнопок:', buttonTime.toFixed(2) + 'ms', 'Кнопок:', buttonCount);
-                        }
-                    }
-                    var updateTime = performance.now() - updateStart;
-                    if (updateTime > 10) {
-                        console.warn('⚠️ Долгое обновление игры:', updateTime.toFixed(2) + 'ms', 'CF:', this.cur_cf.toFixed(2));
                     }
                     // ОТКЛЮЧАЕМ обновление статистики во время полета - обновится в конце
                     // Это экономит много операций с DOM каждый кадр
@@ -987,10 +992,10 @@ class Game {
 
         var currentTime = Date.now();
         var timeSinceLastGeneration = this.lastBetGeneration ? (currentTime - this.lastBetGeneration) : 0;
-        var shouldGenerate = !this.lastBetGeneration || timeSinceLastGeneration > 1000; // Каждую 1 секунду
+        var shouldGenerate = !this.lastBetGeneration || timeSinceLastGeneration > 2000; // Увеличено до 2 секунд
 
         // Генерируем только если прошло достаточно времени и не слишком много ставок
-        if (shouldGenerate && this.current_bets.length < 40) {
+        if (shouldGenerate && this.current_bets.length < 35) { // Уменьшено с 40 до 35
             this.lastBetGeneration = currentTime;
 
             // Создаем массив фейковых пользователей если его нет
@@ -1298,7 +1303,12 @@ class Game {
         if ($plane.chart) {
             $plane.chart.points = [];
             $plane.chart.isFlying = true;
+            $plane.chart._frameSkip = 0; // Сбрасываем счетчик кадров
         }
+
+        // Сбрасываем кэш DOM элементов
+        this._cfElement = null;
+        this._warningButtons = null;
 
         $plane.pos = 0;
         $plane.x = SETTINGS.start.x;
@@ -1447,7 +1457,12 @@ class Game {
         if ($plane.chart) {
             $plane.chart.points = [];
             $plane.chart.isFlying = false;
+            $plane.chart._frameSkip = 0;
         }
+
+        // Сбрасываем кэш DOM элементов
+        this._cfElement = null;
+        this._warningButtons = null;
 
         $('#loading_level').css('display', 'flex');
         $('#process_level').css('display', 'none');
@@ -1621,30 +1636,25 @@ function render(currentTime) {
         $plane.update({});
     }
 
-    // Измеряем время рендеринга
+    // Измеряем время рендеринга (только для отладки)
     var renderTime = performance.now() - renderStartTime;
     performanceStats.renderTimes.push(renderTime);
 
-    // Если кадр медленный (>16.67ms для 60fps)
-    if (renderTime > 16.67) {
+    // Если кадр очень медленный (>50ms) - только критичные предупреждения
+    if (renderTime > 50) {
         performanceStats.slowFrames++;
-        console.warn('⚠️ Медленный кадр:', renderTime.toFixed(2) + 'ms', 'FPS:', (1000 / renderTime).toFixed(1));
     }
 
-    // Логируем статистику каждую секунду
-    if (currentTime - performanceStats.lastLogTime > 1000) {
-        var avgRenderTime = performanceStats.renderTimes.reduce((a, b) => a + b, 0) / performanceStats.renderTimes.length;
-        var maxRenderTime = Math.max(...performanceStats.renderTimes);
-        performanceStats.fps = performanceStats.frameCount;
+    // Обновляем статистику каждые 5 секунд (вместо каждой секунды)
+    if (currentTime - performanceStats.lastLogTime > 5000) {
+        var avgRenderTime = performanceStats.renderTimes.length > 0 ?
+            performanceStats.renderTimes.reduce((a, b) => a + b, 0) / performanceStats.renderTimes.length : 0;
+        performanceStats.fps = Math.round(performanceStats.frameCount / 5);
 
-        console.log('📊 ПРОИЗВОДИТЕЛЬНОСТЬ:');
-        console.log('  FPS:', performanceStats.fps);
-        console.log('  Среднее время кадра:', avgRenderTime.toFixed(2) + 'ms');
-        console.log('  Макс время кадра:', maxRenderTime.toFixed(2) + 'ms');
-        console.log('  Медленных кадров:', performanceStats.slowFrames);
-        console.log('  Статус игры:', $game ? $game.status : 'нет');
-        console.log('  Точек графика:', $plane && $plane.chart ? $plane.chart.points.length : 0);
-        console.log('  Текущих ставок:', $game ? $game.current_bets.length : 0);
+        // Логируем только если есть проблемы (FPS < 30)
+        if (performanceStats.fps < 30) {
+            console.warn('⚠️ Низкий FPS:', performanceStats.fps, 'Среднее время кадра:', avgRenderTime.toFixed(2) + 'ms');
+        }
 
         // Сброс статистики
         performanceStats.frameCount = 0;
@@ -1795,31 +1805,32 @@ $(document).ready(function () {
         }
     }
 
-    // Observe balance elements for changes and truncate to 2 decimals
-    try {
-        var balanceNodes = document.querySelectorAll('[data-rel="balance"], #main_balance');
-        balanceNodes.forEach(function (node) {
-            var obs = new MutationObserver(function (mutations) {
-                mutations.forEach(function (m) {
-                    var el = m.target.nodeType === Node.TEXT_NODE ? m.target.parentNode : m.target;
-                    var text = (el.textContent || '').trim();
-                    if (text) {
-                        var n = parseFloat(text.replace(/[^\d\.\-]/g, ''));
-                        if (!isNaN(n)) {
-                            var disp = trunc2(n);
-                            if (el.textContent !== disp) {
-                                el.textContent = disp;
-                            }
-                            if ('value' in el && el.value !== disp) {
-                                el.value = disp;
-                            }
-                        }
-                    }
-                });
-            });
-            obs.observe(node, { characterData: true, childList: true, subtree: true });
-        });
-    } catch (e) { console.warn('Balance observer error', e); }
+    // ОТКЛЮЧЕНО для оптимизации - MutationObserver создает лишнюю нагрузку
+    // Форматирование баланса происходит в функции setBalanceDisplay()
+    // try {
+    //     var balanceNodes = document.querySelectorAll('[data-rel=\"balance\"], #main_balance');
+    //     balanceNodes.forEach(function (node) {
+    //         var obs = new MutationObserver(function (mutations) {
+    //             mutations.forEach(function (m) {
+    //                 var el = m.target.nodeType === Node.TEXT_NODE ? m.target.parentNode : m.target;
+    //                 var text = (el.textContent || '').trim();
+    //                 if (text) {
+    //                     var n = parseFloat(text.replace(/[^\\d\\.\\-]/g, ''));
+    //                     if (!isNaN(n)) {
+    //                         var disp = trunc2(n);
+    //                         if (el.textContent !== disp) {
+    //                             el.textContent = disp;
+    //                         }
+    //                         if ('value' in el && el.value !== disp) {
+    //                             el.value = disp;
+    //                         }
+    //                     }
+    //                 }
+    //             });
+    //         });
+    //         obs.observe(node, { characterData: true, childList: true, subtree: true });
+    //     });
+    // } catch (e) { console.warn('Balance observer error', e); }
 
     // Fix canvas size after DOM is ready
     SETTINGS.w = document.querySelector('#game_field').offsetWidth;
