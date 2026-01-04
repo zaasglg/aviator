@@ -1,7 +1,6 @@
 window.addEventListener("DOMContentLoaded", function () {
   const coeffDisplay = document.querySelector(".rand_number");
-  const collectingInfo = document.querySelector(".collecting_info");
-  
+
   let gameState = {
     status: 'loading', // loading, flying, finish
     currentCoefficient: 1.00,
@@ -9,8 +8,8 @@ window.addEventListener("DOMContentLoaded", function () {
     nextCoefficient: null // Коэффициент следующей игры
   };
 
-  // Подключение к WebSocket серверу
-  const socket = io.connect('wss://aviator.valor-games.co/', {
+  // Подключение к WebSocket серверу (локальный с поддержкой next_coefficient)
+  const socket = io.connect('http://localhost:2345', {
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionDelay: 1000,
@@ -18,64 +17,52 @@ window.addEventListener("DOMContentLoaded", function () {
   });
 
   // Успешное подключение
-  socket.on('connect', function() {
+  socket.on('connect', function () {
     console.log('✓ Connected to WebSocket server!');
     console.log('Socket ID:', socket.id);
-    
+
     // Обновляем статус
     const statusDot = document.querySelector('.status-dot');
     const statusText = document.querySelector('.status-text');
     if (statusDot) statusDot.style.background = '#00E676';
     if (statusText) statusText.textContent = 'Conectado';
-    
-    if (collectingInfo) {
-      collectingInfo.textContent = 'Connection established';
-    }
-    
+
     // Запрашиваем текущее состояние игры
     socket.emit('get_current_state');
   });
 
   // Ошибка подключения
-  socket.on('connect_error', function(error) {
+  socket.on('connect_error', function (error) {
     console.error('✗ WebSocket connection error:', error);
-    
+
     const statusDot = document.querySelector('.status-dot');
     const statusText = document.querySelector('.status-text');
     if (statusDot) statusDot.style.background = '#FF1744';
     if (statusText) statusText.textContent = 'Error';
-    
-    if (collectingInfo) {
-      collectingInfo.textContent = 'Error de conexión';
-    }
   });
 
   // Отключение
-  socket.on('disconnect', function() {
+  socket.on('disconnect', function () {
     console.log('✗ Disconnected from WebSocket server');
-    
+
     const statusDot = document.querySelector('.status-dot');
     const statusText = document.querySelector('.status-text');
     if (statusDot) statusDot.style.background = '#FFD900';
     if (statusText) statusText.textContent = 'Reconectando...';
-    
-    if (collectingInfo) {
-      collectingInfo.textContent = 'Reconectando...';
-    }
   });
 
   // Обновление коэффициента (НЕ используем - показываем только финальный)
-  socket.on('coefficient', function(data) {
+  socket.on('coefficient', function (data) {
     // Игнорируем обновления во время полета
     // Показываем только финальный результат в состоянии FINISH
   });
 
   // Получение текущего состояния игры (при подключении)
-  socket.on('current_state', function(msg) {
+  socket.on('current_state', function (msg) {
     console.log('Current game state received:', msg);
-    
+
     const obj = typeof msg === "string" ? JSON.parse(msg) : msg;
-    
+
     if (obj && obj.game) {
       const data = {
         state: obj.game.state,
@@ -83,11 +70,11 @@ window.addEventListener("DOMContentLoaded", function () {
         delta: parseInt(obj.game.delta),
         id: obj.game.id
       };
-      
+
       console.log('Initial game state:', data);
-      
+
       // Обрабатываем текущее состояние
-      switch(data.state) {
+      switch (data.state) {
         case "loading":
           handleLoadingState(data);
           break;
@@ -105,11 +92,11 @@ window.addEventListener("DOMContentLoaded", function () {
   });
 
   // Изменение состояния игры
-  socket.on('message', function(msg) {
+  socket.on('message', function (msg) {
     console.log('New message:', msg);
-    
+
     const obj = typeof msg === "string" ? JSON.parse(msg) : msg;
-    
+
     if (obj && obj.msg === "Change game state" && obj.game) {
       const data = {
         state: obj.game.state,
@@ -117,10 +104,10 @@ window.addEventListener("DOMContentLoaded", function () {
         delta: parseInt(obj.game.delta),
         id: obj.game.id
       };
-      
+
       console.log('Game state change:', data);
-      
-      switch(data.state) {
+
+      switch (data.state) {
         case "loading":
           handleLoadingState(data);
           break;
@@ -134,70 +121,60 @@ window.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // Обработка состояния LOADING
+  // Обработка состояния LOADING - здесь приходят СТАРЫЕ данные предыдущего раунда
   function handleLoadingState(data) {
-    console.log('→ LOADING state', data);
+    console.log('→ LOADING state (ожидание нового раунда)');
     gameState.status = 'loading';
     gameState.gameId = data.id;
-    
-    // НЕ меняем коэффициент в LOADING
-    // Новый коэффициент придет в FLYING и обновится автоматически
-    
-    if (collectingInfo) {
-      collectingInfo.textContent = 'Collecting information...';
-    }
-    
+
+    // НЕ обновляем коэффициент - в LOADING приходят данные ПРЕДЫДУЩЕГО раунда
+    // Новый коэффициент придёт ТОЛЬКО при переходе в FLYING
+
     document.querySelector('.first_step')?.classList.remove('flying', 'finished');
     document.querySelector('.first_step')?.classList.add('loading');
   }
 
-  // Обработка состояния FLYING
+  // Обработка состояния FLYING - ЗДЕСЬ приходит НОВЫЙ коэффициент (финальный результат раунда!)
   function handleFlyingState(data) {
-    console.log('→ FLYING state - НОВЫЙ КОЭФФИЦИЕНТ:', data.cf);
+    console.log('→ FLYING state - НОВЫЙ КОЭФФИЦИЕНТ:', data.cf, '(это финальный результат!)');
     gameState.status = 'flying';
-    
+
     // Обновляем коэффициент на новый от текущей игры
     coeffDisplay.textContent = data.cf;
     gameState.currentCoefficient = parseFloat(data.cf);
     // Сохраняем как следующий коэффициент для показа в LOADING
     gameState.nextCoefficient = data.cf;
-    
-    if (collectingInfo) {
-      collectingInfo.textContent = 'Volando...';
-    }
-    
+
     document.querySelector('.first_step')?.classList.remove('loading', 'finished');
     document.querySelector('.first_step')?.classList.add('flying');
   }
 
-  // Обработка состояния FINISH - ТОЛЬКО ЗДЕСЬ ОБНОВЛЯЕМ КОЭФФИЦИЕНТ
+  // Обработка состояния FINISH - НЕ меняем коэффициент, ждём следующий раунд
   function handleFinishState(data) {
-    console.log('→ FINISH state - NEW COEFFICIENT:', data.cf);
+    console.log('→ FINISH state - Раунд завершён, ждём новый коэффициент');
     gameState.status = 'finish';
-    gameState.currentCoefficient = parseFloat(data.cf);
-    
-    // ОБНОВЛЯЕМ КОЭФФИЦИЕНТ ТОЛЬКО КОГДА ИГРА ЗАКОНЧИЛАСЬ
-    coeffDisplay.textContent = data.cf;
-    if (collectingInfo) {
-      collectingInfo.textContent = `Resultado: ${data.cf}x`;
-    }
-    
+
+    // НЕ обновляем коэффициент при FINISH
+    // Коэффициент обновится когда начнётся новый раунд (FLYING)
+
     document.querySelector('.first_step')?.classList.remove('loading', 'flying');
     document.querySelector('.first_step')?.classList.add('finished');
   }
 
-  // Обработчик для получения следующего коэффициента
-  socket.on('next_coefficient', function(data) {
-    console.log('→ NEXT COEFFICIENT received:', data);
-    const nextCf = typeof data === 'object' ? data.cf : data;
+  // Обработчик для получения следующего коэффициента (приходит ДО flying!)
+  socket.on('next_coefficient', function (data) {
+    console.log('📢 NEXT COEFFICIENT received:', data);
+
+    // Парсим JSON если это строка
+    const obj = typeof data === "string" ? JSON.parse(data) : data;
+    const nextCf = obj.cf;
+
     if (nextCf) {
       gameState.nextCoefficient = parseFloat(nextCf).toFixed(2);
-      // Если мы в состоянии LOADING - сразу показываем новый коэффициент
-      if (gameState.status === 'loading') {
-        coeffDisplay.textContent = gameState.nextCoefficient;
-        gameState.currentCoefficient = parseFloat(gameState.nextCoefficient);
-        console.log('→ Обновлен коэффициент в LOADING:', gameState.nextCoefficient);
-      }
+      // Сразу показываем новый коэффициент (пришёл ДО начала игры!)
+      coeffDisplay.textContent = gameState.nextCoefficient;
+      gameState.currentCoefficient = parseFloat(gameState.nextCoefficient);
+      console.log('✅ Коэффициент обновлён ЗАРАНЕЕ:', gameState.nextCoefficient);
     }
   });
 
@@ -207,13 +184,13 @@ window.addEventListener("DOMContentLoaded", function () {
   });
 
   // Проверка состояния в консоли
-  window.getGameState = function() {
+  window.getGameState = function () {
     return {
       socketConnected: socket.connected,
       socketId: socket.id,
       gameState: gameState
     };
   };
-  
+
   console.log('Aviator WebSocket initialized. Use getGameState() to check status.');
 });

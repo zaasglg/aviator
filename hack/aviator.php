@@ -119,7 +119,7 @@ if (!isset($_SESSION['user_id'])) {
             <div class="circle aviator-ui">
               <!-- Decorative Elements -->
               <div class="ui-decor">
-                <div class="ui-ring"></div>
+                <div class="ui-ring"></div> 
               </div>
 
               <!-- Main Content -->
@@ -130,17 +130,7 @@ if (!isset($_SESSION['user_id'])) {
                 </div>
               </div>
 
-              <!-- Loading State -->
-              <div class="animating_vint">
-                <div class="info">
-                  <div class="collecting_info">Collecting<br>information...</div>
-                  <div class="yellow_dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
-                </div>
-              </div>
+
             </div>
           </div>
           
@@ -225,7 +215,7 @@ async function checkUserDeposit() {
         });
     </script>
 
-    <script src="./js/aviator.js?v=23"></script>
+    <script src="./js/aviator.js?v=26"></script>
     <script src="./js/lang.js"></script>
 </body>
 </html>

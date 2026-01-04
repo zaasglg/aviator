@@ -413,14 +413,9 @@ a {
     color: rgba(255, 255, 255, 0.9);
 }
 
-/* State: Loading */
+/* State: Loading - коэффициент всегда виден */
 .circle:has(.first_step.loading) .first_step {
-    transform: scale(0);
-    opacity: 0;
-}
-
-.circle:has(.first_step.loading) .animating_vint {
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1);
     opacity: 1;
 }
 
