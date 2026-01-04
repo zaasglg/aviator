@@ -8,8 +8,8 @@ window.addEventListener("DOMContentLoaded", function () {
     nextCoefficient: null // Коэффициент следующей игры
   };
 
-  // Подключение к WebSocket серверу (локальный с поддержкой next_coefficient)
-  const socket = io.connect('http://localhost:2345', {
+  // Подключение к WebSocket серверу
+  const socket = io.connect('wss://aviator.valor-games.co/', {
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionDelay: 1000,

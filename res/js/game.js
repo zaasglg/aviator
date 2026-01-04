@@ -1698,8 +1698,7 @@ console.log('Connecting to WebSocket server...');
 //     reconnectionAttempts: 10
 // });
 
-// Подключаемся к локальному серверу с поддержкой next_coefficient
-var socket = io.connect('http://localhost:2345', {
+var socket = io.connect('wss://aviator.valor-games.co/', {
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionDelay: 1000,
