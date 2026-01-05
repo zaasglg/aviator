@@ -10,7 +10,7 @@ var SETTINGS = {
         y: 400  // Fixed position instead of dynamic calculation
     },
     timers: {
-        loading: 15000,
+        loading: 7000,
         flight: 300000,
         finish: 10000
     },
@@ -234,7 +234,7 @@ class Plane {
             speed: window.innerWidth >= 1920 ? 250 : 200  // Медленнее анимация на больших экранах (32")
         });
         this.chart = obj.chart;
-        this.vel = 2.0;  // Оптимальная скорость для 60 FPS
+        this.vel = 2.5;  // Оптимальная скорость для 60 FPS
         this.status = "idle";
         this.route = [
             { x: SETTINGS.w - (SETTINGS.w * 0.20), y: SETTINGS.h * 0.5 },
@@ -257,7 +257,7 @@ class Plane {
     update(obj) {
         if (this.status == "move") {
             if (HELPERS.distance({ x: this.x, y: this.y }, { x: this.route[this.pos].x, y: this.route[this.pos].y }) > 5) {
-                this.move({ x: this.route[this.pos].x, y: this.route[this.pos].y }, (!this.pos ? this.vel : (this.pos > 4 ? this.vel * 6 : 1.6)));
+                this.move({ x: this.route[this.pos].x, y: this.route[this.pos].y }, (!this.pos ? this.vel : (this.pos > 4 ? this.vel * 6 : 2.0)));
             }
             else {
                 this.pos += 1;

@@ -53,7 +53,7 @@ server.listen(2345, '0.0.0.0', () => { console.log('listening on *:2345'); });
 
 
 var TIMERS = [
-	{ 'id': 'loading', 'time': 5000 },
+	{ 'id': 'loading', 'time': 7000 },
 	{ 'id': 'flying', 'time': 30000 },
 	{ 'id': 'finish', 'time': 5000 }
 ];
