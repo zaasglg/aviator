@@ -163,65 +163,55 @@ class Chart {
         this.ctx = obj.ctx;
         this.sx = obj.sx;       // start.x
         this.sy = obj.sy;       // start.y
+        this.ax = obj.sx;       // arc.x
+        this.ay = obj.sy;       // arc.y
         this.fx = obj.fx;       // finish.x
         this.fy = obj.fy;       // finish.y
-        this.fill = obj.fill ? obj.fill : 'rgba(255, 0, 0, 0.03)'; // Минимальная заливка для производительности
-        this.stroke = obj.stroke ? obj.stroke : "#ff1744"; // Яркий красный для линии
-        this.w = obj.w ? obj.w : 2; // Тонкая линия для производительности
+        this.fill = obj.fill ? obj.fill : 'rgba(255, 0, 0, 0.03)';
+        this.stroke = obj.stroke ? obj.stroke : "#ff1744";
+        this.w = obj.w ? obj.w : 5; // Unchanged thickness
         this.line = obj.line ? obj.line : 1;
-        this.points = []; // Массив точек для плавной линии
-        this.isFlying = false; // Флаг - рисовать график только во время полета
+        this.isFlying = false;
     }
     update(obj) {
-        // Рисуем график только если самолет летит
         if (!this.isFlying) return;
-
         this.fx = obj.x;
         this.fy = obj.y;
 
-        // Добавляем точку каждые N кадров для экономии памяти
-        if (!this._frameSkip) this._frameSkip = 0;
-        this._frameSkip++;
-        if (this._frameSkip >= 3) { // Добавляем точку каждые 3 кадра
-            this._frameSkip = 0;
-            this.points.push({ x: this.fx, y: this.fy });
-        }
-
-        // КРИТИЧНО: Ограничиваем количество точек для производительности
-        var maxPoints = 50; // Уменьшено с 75-100 до 50
-        if (this.points.length > maxPoints) {
-            this.points.shift();
-        }
+        // FIXED Bezier curve control point calculation
+        this.ax = this.sx + (this.fx - this.sx) / 2;
+        this.ay = (SETTINGS.h - 20); // Bottom of canvas
 
         this.draw();
     }
     draw() {
-        if (this.points.length < 2) return;
-
         var ctx = this.ctx;
 
-        // Устанавливаем стили один раз
+        // Fill (optional, keeps consistency if fill is defined)
+        ctx.beginPath();
+        ctx.moveTo(this.sx, this.sy);
+        ctx.quadraticCurveTo(this.ax, this.ay, this.fx, this.fy);
+        ctx.lineTo(this.fx, this.sy);
+        ctx.closePath();
+        ctx.fillStyle = this.fill;
+        ctx.fill();
+
+        // Stroke (The main curve)
+        ctx.beginPath();
+        ctx.moveTo(this.sx, this.sy);
+        ctx.quadraticCurveTo(this.ax, this.ay, this.fx, this.fy);
         ctx.strokeStyle = this.stroke;
+        ctx.lineWidth = this.w;
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
-
-        // Рисуем основную траекторию
-        ctx.beginPath();
-        ctx.moveTo(this.sx, this.sy);
-
-        var points = this.points;
-        var len = points.length;
-        for (var i = 0; i < len; i++) {
-            ctx.lineTo(points[i].x, points[i].y);
-        }
-
-        ctx.lineWidth = this.w;
         ctx.stroke();
 
-        // Базовая линия (тонкая) - объединяем с основным путем
+        // Base line / Triangle closure
         ctx.beginPath();
-        ctx.moveTo(this.sx, this.sy);
+        ctx.moveTo(this.fx, this.fy);
         ctx.lineTo(this.fx, this.sy);
+        ctx.lineTo(this.sx, this.sy);
+        ctx.strokeStyle = this.stroke;
         ctx.lineWidth = this.line;
         ctx.stroke();
     }
