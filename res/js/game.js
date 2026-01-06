@@ -611,6 +611,28 @@ class Game {
                     var buttonUpdateInterval = 500; // Увеличен до 500ms
                     if (!this.lastButtonUpdate || ($timer - this.lastButtonUpdate) > buttonUpdateInterval) {
                         this.lastButtonUpdate = $timer;
+
+                        // FIX: Recovery for buttons stuck in 'Cancel' state
+                        // Если по какой-то причине кнопка осталась в статусе 'danger' (Cancel) во время полета, 
+                        // но имеет ID ставки -> переключаем её в 'warning' (Cash Out)
+                        var stuckButtons = document.querySelectorAll('#actions_wrapper .make_bet.danger');
+                        if (stuckButtons && stuckButtons.length > 0) {
+                            stuckButtons.forEach(function (btn) {
+                                var $bet_id = parseInt(btn.getAttribute('data-id'));
+                                if ($bet_id) {
+                                    console.warn("FIX: Recovering stuck button", btn.getAttribute('data-src'));
+                                    btn.classList.remove('danger');
+                                    btn.classList.add('warning');
+                                    var span = btn.querySelector('span');
+                                    if (span) span.innerHTML = LOCALIZATION.make_bet_generic_cashout;
+                                    var h3 = btn.querySelector('h3');
+                                    if (h3) h3.style.display = 'none';
+                                    var h2 = btn.querySelector('h2');
+                                    if (h2) h2.style.display = 'flex';
+                                }
+                            });
+                        }
+
                         // Используем кэшированные кнопки
                         if (!this._warningButtons) {
                             this._warningButtons = document.querySelectorAll('#actions_wrapper .make_bet.warning');
@@ -1287,23 +1309,27 @@ class Game {
         SETTINGS.timers.flight = $data.delta;
         this.timer = new Date().getTime();
         this.win_cf = $data.cf;
+        this.win_cf = $data.cf;
         this.cur_cf = 1;
-        $plane.status = "move";
 
-        // Очищаем и включаем рисование графика
-        if ($plane.chart) {
-            $plane.chart.points = [];
-            $plane.chart.isFlying = true;
-            $plane.chart._frameSkip = 0; // Сбрасываем счетчик кадров
+        if (window.$plane) {
+            $plane.status = "move";
+            // Очищаем и включаем рисование графика
+            if ($plane.chart) {
+                $plane.chart.points = [];
+                $plane.chart.isFlying = true;
+                $plane.chart._frameSkip = 0; // Сбрасываем счетчик кадров
+            }
+            $plane.pos = 0;
+            $plane.x = SETTINGS.start.x;
+            $plane.y = SETTINGS.start.y;
+        } else {
+            console.warn("⚠️ $plane not initialized yet in loading_to_flying");
         }
 
         // Сбрасываем кэш DOM элементов
         this._cfElement = null;
         this._warningButtons = null;
-
-        $plane.pos = 0;
-        $plane.x = SETTINGS.start.x;
-        $plane.y = SETTINGS.start.y;
         $('.make_bet').each(function () {
             var $self = $(this);
             var $src = $self.attr('data-src');

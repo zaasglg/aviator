@@ -1393,7 +1393,8 @@ main {
     font-weight: 500;
     color: rgb(204, 204, 204);
     display: flex;
-    flex-flow: row nowrap: justify-content:start;
+    flex-flow: row nowrap;
+    justify-content: start;
     align-items: center;
     gap: 0;
 }
@@ -2126,7 +2127,7 @@ main {
         line-height: 60px;
     }
 }
-}
+
 
 @media (max-width:500px) {
     #modal_wrapper {
