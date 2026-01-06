@@ -8,7 +8,7 @@ var SETTINGS = {
     scale: 0.7,
     start: {
         x: 20,
-        y: 400  // Fixed position instead of dynamic calculation
+        y: document.querySelector('#game_field').offsetHeight / 2,
     },
     timers: {
         loading: 7000,
