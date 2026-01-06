@@ -4,7 +4,8 @@ var SETTINGS = {
     h: document.querySelector('#game_field').offsetHeight,
     // Для экранов 32+ дюймов (>1600px, например 1920x1080) используем масштабирование для производительности
     // Для обычных экранов - полное разрешение
-    scale: window.innerWidth >= 1920 ? 0.85 : (window.innerWidth > 1600 ? 0.9 : 1.0),
+    // scale: window.innerWidth >= 1920 ? 0.85 : (window.innerWidth > 1600 ? 0.7 : 0.7),
+    scale: 0.7,
     start: {
         x: 20,
         y: 400  // Fixed position instead of dynamic calculation
