@@ -296,6 +296,7 @@ class Game {
         this.cur_cf = 1.0;
         this.win_cf = 2.56;
         this.new_delta = 0;
+        this.allow_flight = false; // Prevent joining mid-game
         var $vics = document.querySelectorAll('[data-rel="currency"]');
         if ($vics && $vics.length) {
             for (var $vic of $vics) {
@@ -1281,6 +1282,10 @@ class Game {
 
     // SOCKET FUNC
     loading_to_flying($data) {
+        if (!this.allow_flight) {
+            console.log("⚠️ Joined mid-flight. Waiting for next round.");
+            return;
+        }
         console.log('🛫 LOADING → FLYING', 'CF:', $data.cf, 'Delta:', $data.delta);
         var stateChangeStart = performance.now();
 
@@ -1460,6 +1465,7 @@ class Game {
         console.log('🔄 FINISH → LOADING', 'CF:', $data.cf, 'Delta:', $data.delta);
         var stateChangeStart = performance.now();
 
+        this.allow_flight = true; // Enable joining next flight
         this.status = "loading";
         this.timer = new Date().getTime();
         SETTINGS.timers.loading = $data.delta;
